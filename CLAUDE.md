@@ -98,7 +98,7 @@ FastAPI REST API + React dashboard που μετατρέπει τα ευρήμα
 
 ```bash
 # Dev
-uvicorn app.main:app --reload            # API στο :8000, Swagger στο /docs
+uvicorn main:app --reload                # τρέχει από backend/, API στο :8000, Swagger στο /docs
 docker compose up -d db                   # μόνο PostgreSQL
 docker compose up --build                 # όλο το stack
 
@@ -120,7 +120,11 @@ cd frontend && npm run dev                # :5173
 
 ## Συμβάσεις
 
-- Python: type hints παντού, Pydantic v2, SQLAlchemy 2.0 style (`Mapped[]`, `mapped_column`).
+- Entrypoint: το FastAPI app object ζει στο `backend/main.py` (όχι `app/main.py`).
+  Τρέχει με `uvicorn main:app` μέσα από το `backend/`.
+- Python: type hints παντού, Pydantic v2, SQLAlchemy classic style (`Column(...)`,
+  όπως στο υπάρχον `Country` model) — ΟΧΙ 2.0 `Mapped[]`/`mapped_column`, για
+  συνέπεια με το ήδη γραμμένο μοντέλο.
 - Ονόματα: snake_case Python, PascalCase models/schemas, plural routes (`/countries`).
 - Secrets ΜΟΝΟ σε `.env` (ποτέ commit) — `OPENAI_API_KEY`, `DATABASE_URL`, `JWT_SECRET`.
 - Κάθε νέο service function αποκτά unit test. Ο υπολογιστικός πυρήνας (power index/
