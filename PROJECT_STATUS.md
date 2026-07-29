@@ -60,12 +60,32 @@ https://github.com/npapadopoulos6789-cpu/kosovo-negotiation-analytics
 πλήρες και committed. Διαγράφηκαν στις 2026-07-29 — δεν ήταν συνδεδεμένα
 πουθενά, το `backend/main.py` έκανε πάντα import από τα `country.py` αρχεία.
 
+- **Indicator vertical slice — ΟΛΟΚΛΗΡΟ, ΔΕΝ έχει γίνει commit ακόμα:**
+  `app/models/indicator.py` (FK σε `countries.id`, enum `IndicatorCategory`),
+  `app/repositories/indicator.py`, `app/services/indicator.py` (custom
+  exceptions `IndicatorNotFoundError`/`CountryForIndicatorNotFoundError`,
+  business rule: η χώρα του indicator πρέπει να υπάρχει), `app/schemas/indicator.py`
+  (Base/Create/Update/Read στυλ), `app/api/indicator.py` — πλήρες CRUD +
+  extra endpoint `GET /indicators/by-country/{country_id}`. Ίδιο pattern με
+  το Country ακριβώς. Migration `51bb723cd8d8_create_indicators_table.py`
+  γράφτηκε ΚΑΙ εφαρμόστηκε (`alembic current` → head), `alembic/env.py`
+  ενημερώθηκε με το import του `Indicator` model. Router συνδέθηκε στο
+  `backend/main.py` + exception handlers για τα δύο custom exceptions.
+  Tests: `tests/unit/test_indicator_service.py` (10 tests, fake repos) +
+  `tests/integration/test_indicator_api.py` (4 tests, πραγματικό HTTP μέσω
+  TestClient). Σύνολο `pytest -q` στο `backend/`: **34 passed** (19 Country +
+  15 Indicator).
+- Στην πορεία υπήρξε ενδιάμεση σύγχυση: το πρώτο draft του `app/api/indicator.py`
+  ήταν σε παλιό class-based στυλ (`IndicatorService`, `IndicatorResponse`) που
+  δεν ταίριαζε με το function-based `services/indicator.py` — διορθώθηκε στο
+  ίδιο session, τώρα ταιριάζει 100% με το Country router pattern.
+
 **Επόμενο βήμα:**
-1. Επιβεβαίωση ότι ο server τρέχει (`uvicorn main:app --reload` μέσα στο
-   `backend/`) και ότι το Swagger (`/docs`) δείχνει σωστά το CRUD
-2. Τρέξιμο των υπαρχόντων tests (`pytest -x -q` μέσα στο `backend/`)
-3. Commit: καθαρισμός duplicates + ενημέρωση αυτού του αρχείου
-4. Μετά: συνέχεια στο Indicator entity (ίδιο pattern με το Country slice)
+1. Commit του Indicator slice (μοντέλο/repo/service/schema/router/migration/tests)
+   + του καθαρισμού των Country duplicates — είναι ακόμα uncommitted μαζί
+2. Push στο GitHub
+3. Μετά: συνέχεια στο NegotiationEvent entity (ίδιο pattern, αλλά προσοχή στο
+   business rule weights sum=10 και στο association table `event_participants`)
 
 **Σημειώσεις/μαθήματα από προβλήματα που ξανασυναντήσαμε:**
 - Αρχεία (π.χ. country.py, .env) έχουν "χαθεί" 2-3 φορές — να ελέγχεται πάντα
