@@ -17,15 +17,10 @@ NORMALIZATION_RANGES = {
 
 
 def normalize(value: float, indicator_type: str) -> float:
-    """
-    Μετατρέπει μια "ωμή" τιμή σε κλίμακα 0-100, βάσει προκαθορισμένων
-    ορίων min/max.
-    """
     if indicator_type not in NORMALIZATION_RANGES:
         raise ValueError(f"Δεν υπάρχουν normalization όρια για '{indicator_type}'")
 
     min_val, max_val = NORMALIZATION_RANGES[indicator_type]
-
     clamped = max(min_val, min(value, max_val))
     normalized = (clamped - min_val) / (max_val - min_val) * 100
     return round(normalized, 2)
@@ -34,10 +29,6 @@ def normalize(value: float, indicator_type: str) -> float:
 def get_category_score(
     db: Session, country_id: int, year: int, category: str
 ) -> float | None:
-    """
-    Μέσος όρος normalized τιμών όλων των Indicators μιας κατηγορίας,
-    για μια χώρα σε ένα έτος. None αν δεν υπάρχουν δεδομένα.
-    """
     all_indicators = indicator_repository.get_by_country(db, country_id)
 
     matching = [
@@ -61,10 +52,6 @@ POWER_INDEX_WEIGHTS = {
 
 
 def calculate_power_index(db: Session, country_id: int, year: int) -> float | None:
-    """
-    Συνδυάζει τα 3 category scores μιας χώρας σε ένα έτος, με τα
-    σταθερά βάρη 40/40/20. None αν λείπει έστω μία κατηγορία.
-    """
     economic = get_category_score(db, country_id, year, "ECONOMIC")
     military = get_category_score(db, country_id, year, "MILITARY")
     social = get_category_score(db, country_id, year, "SOCIAL_UNREST")
@@ -78,3 +65,19 @@ def calculate_power_index(db: Session, country_id: int, year: int) -> float | No
         + social * POWER_INDEX_WEIGHTS["SOCIAL_UNREST"]
     )
     return round(power_index, 2)
+
+
+def calculate_power_gap(
+    db: Session, serbia_id: int, kosovo_id: int, year: int
+) -> float | None:
+    """
+    |Power Index Σερβίας - Power Index Κοσόβου| σε ένα έτος.
+    None αν λείπει το Power Index οποιασδήποτε από τις δύο χώρες.
+    """
+    serbia_pi = calculate_power_index(db, serbia_id, year)
+    kosovo_pi = calculate_power_index(db, kosovo_id, year)
+
+    if serbia_pi is None or kosovo_pi is None:
+        return None
+
+    return round(abs(serbia_pi - kosovo_pi), 2)

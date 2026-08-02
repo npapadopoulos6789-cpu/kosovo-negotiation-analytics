@@ -84,3 +84,25 @@ def test_calculate_power_index_returns_none_if_category_missing(monkeypatch):
     result = analytics_service.calculate_power_index(db=None, country_id=1, year=2013)
 
     assert result is None
+
+
+def test_calculate_power_gap_returns_absolute_difference(monkeypatch):
+    def fake_power_index(db, country_id, year):
+        return {1: 70.0, 2: 45.0}[country_id]
+
+    monkeypatch.setattr(analytics_service, "calculate_power_index", fake_power_index)
+
+    result = analytics_service.calculate_power_gap(db=None, serbia_id=1, kosovo_id=2, year=2013)
+
+    assert result == 25.0
+
+
+def test_calculate_power_gap_returns_none_if_missing_data(monkeypatch):
+    def fake_power_index(db, country_id, year):
+        return None if country_id == 2 else 70.0
+
+    monkeypatch.setattr(analytics_service, "calculate_power_index", fake_power_index)
+
+    result = analytics_service.calculate_power_gap(db=None, serbia_id=1, kosovo_id=2, year=2013)
+
+    assert result is None
