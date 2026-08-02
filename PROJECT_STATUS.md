@@ -32,60 +32,82 @@ https://github.com/npapadopoulos6789-cpu/kosovo-negotiation-analytics
 
 ## ΠΟΥ ΒΡΙΣΚΟΜΑΣΤΕ ΤΩΡΑ (ενημέρωσε αυτό το κομμάτι σε κάθε session)
 
-**Έχουν ολοκληρωθεί:**
-- venv, FastAPI "Hello World", πλήρης δομή φακέλων (models/schemas/repositories/
-  services/api/core), όλα τα `__init__.py`
-- PostgreSQL τρέχει σε Docker (`docker-compose.yml` στη ρίζα)
-- `.env` με DATABASE_URL, `app/core/database.py` (engine, SessionLocal, Base, get_db)
-- `app/models/country.py` (Country model με actor_type/geopolitical_bloc/
-  recognized_kosovo/country_code, enums ActorType/GeopoliticalBloc)
-- Alembic: `alembic init`, `env.py` ρυθμισμένο (διαβάζει .env, target_metadata =
-  Base.metadata), πρώτο migration `27011cfbfeba_create_countries_table.py`
-  δημιουργήθηκε ΚΑΙ εφαρμόστηκε (`alembic upgrade head`) — ο πίνακας `countries`
-  υπάρχει πραγματικά στη ΒΔ
-- Git/GitHub: repo συνδεδεμένο
-- **Country vertical slice — ΟΛΟΚΛΗΡΟ, committed (`211ee88`):**
-  `app/repositories/country.py`, `app/services/country.py` (custom domain
-  exceptions `CountryNotFoundError`/`DuplicateCountryNameError`),
-  `app/schemas/country.py`, `app/api/country.py` — πλήρες CRUD
-  (GET list, GET by id, POST, PUT, DELETE). Entrypoint είναι `backend/main.py`
-  (ΟΧΙ `app/main.py`) — εκεί γίνεται `include_router` + exception handlers
-  που κάνουν map τα custom exceptions σε 404/409.
-- 19 unit/integration tests στο `backend/tests/` (`pytest.ini`,
-  `requirements.txt` προστέθηκαν στο ίδιο commit)
+_Τελευταία πλήρης ανανέωση: 2026-08-02. `git status` καθαρό, όλα committed_
+_και pushed. `pytest -q` στο `backend/`: **51 passed**, 0 failed._
 
-**Σημείωση για προηγούμενη σύγχυση:** είχαν δημιουργηθεί χειροκίνητα 4 duplicate
-αρχεία (`country_router.py`, `country_repository.py`, `country_schema.py`,
-`country_service.py`, class-based στυλ) πριν γίνει σαφές ότι το slice ήταν ήδη
-πλήρες και committed. Διαγράφηκαν στις 2026-07-29 — δεν ήταν συνδεδεμένα
-πουθενά, το `backend/main.py` έκανε πάντα import από τα `country.py` αρχεία.
+### Infrastructure
+- venv, πλήρης δομή φακέλων (`models/schemas/repositories/services/api/core`)
+- PostgreSQL σε Docker (`docker-compose.yml` στη ρίζα), `.env` με DATABASE_URL
+- `app/core/database.py` (engine, SessionLocal, Base, get_db)
+- Alembic ρυθμισμένο (`env.py` διαβάζει `.env`, `target_metadata = Base.metadata`).
+  5 migrations, όλα εφαρμοσμένα στη ΒΔ (`alembic current` → head):
+  `countries` → `indicators` → `users` → `negotiation_events` +
+  `event_participants` → `negotiation_analyses`
+- Entrypoint: **`backend/main.py`** (ΟΧΙ `app/main.py`) — εκεί γίνονται όλα τα
+  `include_router(...)` + exception handlers που κάνουν map custom domain
+  exceptions σε HTTP status codes (404/409/422/401)
+- Git/GitHub: repo συνδεδεμένο, https://github.com/npapadopoulos6789-cpu/kosovo-negotiation-analytics,
+  ενημερωμένο μέχρι το commit `cee82a1`
 
-- **Indicator vertical slice — ΟΛΟΚΛΗΡΟ, ΔΕΝ έχει γίνει commit ακόμα:**
-  `app/models/indicator.py` (FK σε `countries.id`, enum `IndicatorCategory`),
-  `app/repositories/indicator.py`, `app/services/indicator.py` (custom
-  exceptions `IndicatorNotFoundError`/`CountryForIndicatorNotFoundError`,
-  business rule: η χώρα του indicator πρέπει να υπάρχει), `app/schemas/indicator.py`
-  (Base/Create/Update/Read στυλ), `app/api/indicator.py` — πλήρες CRUD +
-  extra endpoint `GET /indicators/by-country/{country_id}`. Ίδιο pattern με
-  το Country ακριβώς. Migration `51bb723cd8d8_create_indicators_table.py`
-  γράφτηκε ΚΑΙ εφαρμόστηκε (`alembic current` → head), `alembic/env.py`
-  ενημερώθηκε με το import του `Indicator` model. Router συνδέθηκε στο
-  `backend/main.py` + exception handlers για τα δύο custom exceptions.
-  Tests: `tests/unit/test_indicator_service.py` (10 tests, fake repos) +
-  `tests/integration/test_indicator_api.py` (4 tests, πραγματικό HTTP μέσω
-  TestClient). Σύνολο `pytest -q` στο `backend/`: **34 passed** (19 Country +
-  15 Indicator).
-- Στην πορεία υπήρξε ενδιάμεση σύγχυση: το πρώτο draft του `app/api/indicator.py`
-  ήταν σε παλιό class-based στυλ (`IndicatorService`, `IndicatorResponse`) που
-  δεν ταίριαζε με το function-based `services/indicator.py` — διορθώθηκε στο
-  ίδιο session, τώρα ταιριάζει 100% με το Country router pattern.
+### Τα 5 entities — όλα ολοκληρωμένα ως vertical slices (model → migration →
+### repository → service → schema → router → tests), ίδιο pattern παντού:
+### function-based repository/service, custom domain exceptions, Pydantic
+### Base/Create/Update/Read schemas
+
+1. **Country** — πλήρες CRUD. Business rule: όχι διπλότυπο όνομα
+   (`DuplicateCountryNameError` → 409).
+2. **Indicator** — πλήρες CRUD + `GET /indicators/by-country/{country_id}`.
+   Business rule: η χώρα πρέπει να υπάρχει (`CountryForIndicatorNotFoundError`).
+3. **NegotiationEvent** — πλήρες CRUD, με nested `participants` (association
+   table `event_participants`, roles PARTY/MEDIATOR/GUARANTOR). Business rules:
+   βάρη economic/military/social πρέπει να αθροίζουν σε 10
+   (`InvalidWeightsError` → 422, ελέγχεται σωστά και σε partial update), κάθε
+   participant country πρέπει να υπάρχει (`CountryForParticipantNotFoundError`).
+   Το `ParticipantRead.country_name` καλύπτεται από `@property` στο
+   `EventParticipant` model (`return self.country.name`) — δεν χρειάστηκε
+   καμία επιπλέον λογική σε service/schema.
+4. **NegotiationAnalysis** — CRUD μόνο GET+POST (χωρίς PUT/DELETE, δεν βγάζει
+   νόημα να επεξεργαστείς μια LLM απάντηση). Business rule:
+   `negotiation_event_id=None` → `is_synthesis=True` αυτόματα· αν δοθεί
+   event_id, πρέπει να υπάρχει (`EventForAnalysisNotFoundError`).
+   **ΠΡΟΣΩΡΙΝΑ δεν καλεί ακόμα το LLM** — το `POST /negotiation-analyses`
+   αποθηκεύει μόνο το `user_question`, με `llm_answer=None`,
+   `model_used=None`. Το πραγματικό OpenAI integration (system prompt με
+   strict context, temperature=0) είναι το επόμενο ξεχωριστό βήμα.
+5. **User + Auth** — `app/models/user.py` (email, hashed_password, role
+   ADMIN/VIEWER), `app/core/security.py` (password hashing, JWT create/decode),
+   `POST /auth/register`, `POST /auth/login` (JSON body, όχι OAuth2 form —
+   επιστρέφει `{access_token, token_type}`).
+
+### Authorization — ενεργό σε όλα τα entities
+`app/core/dependencies.py`: `get_current_user` (decode JWT από
+`Authorization: Bearer <token>`) και `require_admin` (401 αν δεν υπάρχει
+έγκυρο token, 403 αν ο χρήστης δεν είναι ADMIN). Εφαρμόζεται ως
+`Depends(require_admin)` σε **όλα** τα POST/PUT/DELETE των Country/Indicator/
+NegotiationEvent (`create_analysis` του NegotiationAnalysis είναι ΣΚΟΠΙΜΑ
+χωρίς `require_admin` — οποιοσδήποτε συνδεδεμένος χρήστης, ADMIN ή VIEWER,
+επιτρέπεται να ζητήσει LLM ανάλυση, μόνο η διαχείριση δεδομένων είναι
+ADMIN-only). Όλα τα GET endpoints παραμένουν δημόσια, χωρίς authentication.
+Επιβεβαιώθηκε end-to-end με live curl requests (register/login/POST με και
+χωρίς token → 200/201/401 όπως αναμενόταν).
+
+### Tests
+`backend/tests/`: 4 unit test files (fake repositories, χωρίς πραγματική ΒΔ)
++ 3 integration test files (πραγματικά HTTP requests μέσω `TestClient` σε
+SQLite in-memory). Fixtures στο `conftest.py`: `client` (χωρίς auth, για GET-only
+tests) και `admin_client` (κάνει register+login ADMIN αυτόματα, βάζει
+`Authorization` header — χρησιμοποιείται σε όλα τα write tests). Σύνολο:
+**51 passed**.
 
 **Επόμενο βήμα:**
-1. Commit του Indicator slice (μοντέλο/repo/service/schema/router/migration/tests)
-   + του καθαρισμού των Country duplicates — είναι ακόμα uncommitted μαζί
-2. Push στο GitHub
-3. Μετά: συνέχεια στο NegotiationEvent entity (ίδιο pattern, αλλά προσοχή στο
-   business rule weights sum=10 και στο association table `event_participants`)
+1. Πραγματικό LLM integration στο `NegotiationAnalysis.create_analysis`
+   (OpenAI API call, strict prompt μόνο πάνω σε δοθέν context, temperature=0,
+   άρνηση αν λείπουν δεδομένα — βλ. κανόνες LLM integration στο CLAUDE.md)
+2. Ντετερμινιστικοί υπολογισμοί: Power Index / Power Gap / Window Score /
+   Optimal Periods (service layer, ΟΧΙ LLM, βλ. business rules στο CLAUDE.md)
+3. `POST /synthesis` endpoint (context = όλα τα events + scores, `is_synthesis=true`)
+4. Seed script με τα πραγματικά δεδομένα της διπλωματικής (`is_verified=true`)
+5. Μετά: React frontend (`frontend/`, δεν έχει ξεκινήσει ακόμα)
 
 **Σημειώσεις/μαθήματα από προβλήματα που ξανασυναντήσαμε:**
 - Αρχεία (π.χ. country.py, .env) έχουν "χαθεί" 2-3 φορές — να ελέγχεται πάντα
@@ -93,6 +115,8 @@ https://github.com/npapadopoulos6789-cpu/kosovo-negotiation-analytics
 - Πριν ξεκινήσουμε νέο slice χειροκίνητα, να ελέγχουμε πρώτα `git log` / `git
   status` μήπως υπάρχει ήδη committed δουλειά — απέφυγε ξανά τη σύγχυση duplicate
   αρχείων που έγινε με το Country slice
+- `POST /auth/login` θέλει JSON body (`UserLogin` schema), όχι OAuth2
+  form-data, παρόλο που χρησιμοποιείται `OAuth2PasswordBearer` για το Swagger UI
 - Προσοχή PowerShell vs cmd (πρέπει να βλέπουμε `PS` στο prompt)
 - Να ενεργοποιείται το venv σε κάθε νέο terminal (`venv\Scripts\Activate.ps1`)
 - GitHub account που χρησιμοποιούμε: npapadopoulos6789-cpu (όχι pouritanos42)
