@@ -3,9 +3,9 @@
 Agent-facing χρονοδιάγραμμα/roadmap. Για το domain model, τους κανόνες και τις
 συμβάσεις δες [CLAUDE.md](CLAUDE.md) — αυτό εδώ είναι μόνο "πού είμαστε / τι ακολουθεί".
 
-**Ενημερώθηκε:** 2026-08-02 · **Branch:** `main` · **Τελευταία αλλαγή:**
-seed.py αντικαταστάθηκε με πραγματικά δεδομένα (World Bank API + διπλωματική),
-analytics core ολοκληρώθηκε
+**Ενημερώθηκε:** 2026-08-03 · **Branch:** `main` · **Τελευταία αλλαγή:**
+P1-P5 validation tests γράφτηκαν (SEED_DATA_SPEC.md §4.1) + διορθώθηκαν 2
+πραγματικά bugs στο Window Score previous_year logic
 
 **⚠️ Αυτό το αρχείο είναι το αρχικό roadmap, όχι το ζωντανό status. Για το
 ακριβές "πού βρισκόμαστε τώρα" δες το [PROJECT_STATUS.md](PROJECT_STATUS.md),
@@ -32,12 +32,15 @@ analytics core ολοκληρώθηκε
 | **`NegotiationEvent` (+ `event_participants`)** | ✅ ολοκληρώθηκε |
 | **`NegotiationAnalysis`** | ⚠️ CRUD σκελετός έτοιμος, LLM call ΔΕΝ έχει
   υλοποιηθεί ακόμα (`llm_answer`/`model_used` μένουν `NULL`) |
-| **Seed script** | ✅ πραγματικά δεδομένα (World Bank API + διπλωματική) — αλλά
-  δεν καλύπτει ακόμα όλο το `SEED_DATA_SPEC.md` (λείπουν 3 events, 2 προτεινόμενα
-  πεδία, τα P1-P5 validation tests) |
+| **Seed script** | ✅ πλήρες SEED_DATA_SPEC.md set: 10 events (E1-E10), 59
+  indicators, `confidence`/`implementation_success` πεδία — μόνο τα
+  προαιρετικά "Future Work" indicators του spec (§2.1-2.4) λείπουν ακόμα |
+| **P1-P5 validation tests** | ✅ 6 tests, integration-style σε πραγματική ΒΔ.
+  P1/P2/P4 rescoped (κάλυψη δεδομένων), P3 επιβεβαιώνεται (μετά από bug fix),
+  P5 τεκμηριωμένο ως μη-επιβεβαιωμένο (μεθοδολογικός περιορισμός, όχι bug) |
 | `requirements.txt` + `pytest.ini` | ✅ (διορθώθηκε 2026-08-02: έλειπαν
   `bcrypt`/`python-jose`/`email-validator`) |
-| Tests (unit/integration) | ✅ **73 passed** — αλλά κενά coverage: όχι unit
+| Tests (unit/integration) | ✅ **80 passed** — αλλά κενά coverage: όχι unit
   test για User service, όχι integration tests για negotiation-analyses/analytics |
 | Docker Compose πλήρες stack (api + frontend services) | ❌ — μόνο `db` υπάρχει |
 | README.md (ο άνθρωπος-αναγνώστης) | ❌ — δεν έχει γραφτεί ακόμα |
@@ -99,12 +102,20 @@ Model + CRUD slice (GET/POST) έτοιμα. **Η πραγματική LLM κλή
 πεδία event + Indicators ±1-2 έτη + Power Index/Gap/Window Score/Optimal Periods
 + participants) και το `POST /synthesis` endpoint.
 
-### 7. Seed script ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ (μερικώς πέρα από το αρχικό σχέδιο)
-`python -m app.scripts.seed` — 9 countries/actors, 44 indicators (πραγματικές
-τιμές World Bank API + Freedom House chart), 7 negotiation events. Το πλήρες
-σχέδιο (`SEED_DATA_SPEC.md`) προβλέπει 10 events + 2 νέα πεδία
-(`confidence`, `implementation_success`) + validation tests έναντι των
-συμπερασμάτων της διπλωματικής — αυτά μένουν, βλ. PROJECT_STATUS.md.
+### 7. Seed script ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ, πλήρες SEED_DATA_SPEC.md σετ
+`python -m app.scripts.seed` — 9 countries/actors, 59 indicators (πραγματικές
+τιμές World Bank API + Freedom House chart), 10 negotiation events (E1-E10),
+πεδία `confidence`/`implementation_success`. Μόνο τα προαιρετικά "Future Work"
+indicators του spec §2.1-2.4 λείπουν ακόμα (χαμηλή προτεραιότητα).
+
+### 7b. Validation tests P1-P5 ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ (2026-08-03)
+`tests/unit/test_validation_targets.py` — ελέγχει αν ο analytics πυρήνας
+αναπαράγει τα ποιοτικά συμπεράσματα Κεφ. 4 της διπλωματικής. Στην πορεία
+βρέθηκαν και διορθώθηκαν 2 πραγματικά bugs στο `previous_year` logic του
+Window Score (`find_optimal_mutual_compromise_period`, `find_best_moments`)
+— άλλαξε πραγματικά αποτελέσματα (2013 έγινε το optimal window αντί για
+2023, 2 events ανέβηκαν σε HIGH confidence). Λεπτομέρειες/πραγματικές τιμές
+στο PROJECT_STATUS.md.
 
 ### 8. Frontend (React dashboard)
 Ξεκινάει αφού το API έχει τουλάχιστον Country + Indicator + NegotiationEvent +

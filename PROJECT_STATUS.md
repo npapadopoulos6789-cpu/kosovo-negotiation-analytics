@@ -32,11 +32,11 @@ https://github.com/npapadopoulos6789-cpu/kosovo-negotiation-analytics
 
 ## ΠΟΥ ΒΡΙΣΚΟΜΑΣΤΕ ΤΩΡΑ (ενημέρωσε αυτό το κομμάτι σε κάθε session)
 
-_Τελευταία πλήρης ανανέωση: 2026-08-02, μετά το SEED_DATA_SPEC.md Στάδιο 1+2._
-_`pytest -q` στο `backend/`: **73 passed**, 0 failed._
-_⚠️ `git status` ΔΕΝ είναι καθαρό — 10 τροποποιημένα αρχεία + 1 νέο migration_
-_ακόμα uncommitted (τελευταίο commit: `16be597`). Βλ. λίστα στο τέλος αυτού_
-_του section._
+_Τελευταία πλήρης ανανέωση: 2026-08-03, μετά το SEED_DATA_SPEC.md Στάδιο 1+2+3_
+_(P1-P5 validation tests) + διόρθωση δύο πραγματικών bugs στο analytics.py._
+_`pytest -q` στο `backend/`: **80 passed**, 0 failed. `git status` καθαρό,_
+_όλα committed (τελευταίο commit: `5a56808`) — **4 commits ahead of_
+_`origin/main`, δεν έχει γίνει push ακόμα.**_
 
 ### Infrastructure
 - venv, πλήρης δομή φακέλων (`models/schemas/repositories/services/api/core`)
@@ -108,17 +108,58 @@ _του section._
   αυτός ο router αποκλίνει από το πρότυπο. Δεν το άγγιξα, θέλει απόφαση (βλ. Επόμενο βήμα).
 - **`KEY_YEARS` επεκτάθηκε 2026-08-02**: `[1998, 1999, 2000, 2005, 2007, 2008,
   2013, 2018, 2020, 2023]` (ήταν `[1999, 2005, 2007, 2008, 2013, 2023]`) — τα
-  4 νέα έτη (1998/2000/2018/2020) προστέθηκαν για τα validation tests P1-P5
-  του `SEED_DATA_SPEC.md` §4.1 (βλ. Στάδιο 3 στο Επόμενο βήμα).
-- ⚠️ **Εύρημα κάλυψης δεδομένων (2026-08-02, δεν επιλύθηκε ακόμα):** το
+  4 νέα έτη (1998/2000/2018/2020) προστέθηκαν για τα validation tests P1-P5.
+- **Κάλυψη δεδομένων (επιβεβαιωμένη μέσω κώδικα, όχι εκτίμηση):** το
   `calculate_power_index` απαιτεί exact-year match ΚΑΙ στις 3 κατηγορίες.
-  Με τα σημερινά indicators, πλήρες Power Index υπάρχει ΜΟΝΟ για: Serbia
-  {2005, 2007, 2013, 2023}, Kosovo {2013, 2023} (το `GDP_growth` Κοσόβου
-  καλύπτει μόνο αυτά τα δύο έτη — World Bank API δεν έχει Κόσοβο πριν το
-  2009). Power Gap άρα υπολογίσιμο μόνο {2013, 2023}. Πρακτικά: το P1
-  (Serbia collapse 1999) και μέρος του P2/P4 δεν μπορούν να δοκιμαστούν
-  κυριολεκτικά με πραγματικά δεδομένα σήμερα — χρειάζεται απόφαση στο
-  Στάδιο 3 (re-interpret το test ή αποδοχή `None` με τεκμηρίωση γιατί).
+  Πλήρες Power Index υπάρχει ΓΙΑ ΚΑΙ ΤΙΣ ΔΥΟ χώρες ΜΟΝΟ στα
+  **{2005, 2007, 2013, 2023}** (το Freedom House/social δεν έχει καμία τιμή
+  πριν το 2005 — αυτό είναι το gating constraint, όχι οι υπόλοιπες
+  κατηγορίες). Οδήγησε στο rescoping 3 από τα 5 validation tests, βλ. §
+  "Validation tests P1-P5" παρακάτω.
+- 🐛 **2 πραγματικά bugs βρέθηκαν και διορθώθηκαν (2026-08-03) στο
+  `previous_year` του Window Score:** το `find_optimal_mutual_compromise_period`
+  ΚΑΙ το `find_best_moments` χρησιμοποιούσαν σαν "προηγούμενο έτος" απλά το
+  προηγούμενο στοιχείο της αραιής λίστας `KEY_YEARS` (συχνά χωρίς δεδομένα),
+  μηδενίζοντας αθόρυβα το `trend_score` (30% βάρος στο Window Score) στις
+  περισσότερες περιπτώσεις. Νέο helper `_most_recent_year_with_data()` το
+  διορθώνει και στα δύο σημεία (walk-back στο `KEY_YEARS` μέχρι να βρεθεί
+  έτος με Power Index και για τις δύο χώρες). **Επίδραση στα αποτελέσματα:**
+  - `find_optimal_mutual_compromise_period(Serbia, Kosovo)`: **2023 → 2013**
+    (window_score 61.98, οριακά πάνω από το 59.07/61.79 του 2023) — το P3 της
+    διπλωματικής επιβεβαιώνεται πλέον σωστά
+  - `find_best_moments`: το confidence του Brussels Agreement (2013) και του
+    Ohrid Agreement (2023) ανέβηκε από MEDIUM σε **HIGH** (window_score
+    πέρασε το `BEST_MOMENT_THRESHOLD=60.0`)
+  - Regression tests προστέθηκαν και για τα δύο σημεία
+
+### Validation tests P1-P5 (`tests/unit/test_validation_targets.py`, 6 tests)
+Integration-style πάνω στην ήδη-γεμάτη ΒΔ (πραγματικό `SessionLocal`, όχι
+mocked) — απαιτεί να έχει τρέξει `python -m app.scripts.seed` πρώτα.
+Ελέγχει αν ο ντετερμινιστικός πυρήνας αναπαράγει τα ποιοτικά συμπεράσματα
+Κεφ. 4 της διπλωματικής (`SEED_DATA_SPEC.md` §4.1):
+
+| # | Πρόταση διπλωματικής | Κατάσταση | Πραγματικές τιμές |
+|---|---|---|---|
+| P1 | Σερβία καταρρέει το 1999 | ✅ rescoped σε economic-only (βλ. παρακάτω) | 53.65 → 27.53 |
+| — | (diagnostic) πλήρες PI unavailable πριν το 2005 | ✅ τεκμηριωμένο, όχι bug | `None`, `None` |
+| P2 | Σερβία ανασυγκροτείται μετά το 2000 | ✅ rescoped σε 2005→2007 | 46.12 → 46.38 |
+| P3 | 2013 = στιγμή ωρίμανσης | ✅ επιβεβαιώνεται (μετά το bug fix) | 2013 (61.98) > 2023 (61.79) |
+| P4 | Κόσοβο ενισχύεται (Power Gap στενεύει) | ✅ rescoped σε 2013→2023 | 8.22 → 5.65 |
+| P5 | Κόσοβο χωρίς ανεξάρτητη BATNA | ⚠️ ΔΕΝ επιβεβαιώνεται — τεκμηριωμένο ως μεθοδολογικός περιορισμός, όχι απόδειξη έλλειψης | economic 68.33→80.23 (ΥΨΗΛΟ), military 55→15 (φθίνον, αμφίσημη κατεύθυνση), social 27.5→38.0 |
+
+**P1/P2/P4 rescoped** επειδή το πλήρες Power Index δεν είναι υπολογίσιμο
+πριν το 2005 (Freedom House gate) ή στο 2018/2020 (χάσμα Serbia-Kosovo
+overlap) — τα rescoped tests συγκρίνουν το διαθέσιμο υποσύνολο δεδομένων,
+όχι ολόκληρο το αρχικό εύρος ετών του πρωτότυπου P1/P2/P4.
+
+**P5 δεν επιβεβαιώνεται** — όχι επειδή λείπουν δεδομένα, αλλά επειδή το
+normalization σχέδιο δεν πιάνει "απόλυτη οικονομική ισχύ" (μετράει μόνο
+ρυθμό ανάπτυξης/ανεργία, όπου μικρές οικονομίες βαθμολογούνται ψηλά
+ανεξαρτήτως μεγέθους) και το military indicator (troop_presence_index) έχει
+αμφίσημη κατεύθυνση ερμηνείας (λιγότερη ξένη στρατιωτική παρουσία θα
+έπρεπε εννοιολογικά να σημαίνει ΠΕΡΙΣΣΟΤΕΡΗ αυτονομία, όχι λιγότερη).
+`test_kosovo_indicator_breakdown_documented` καταγράφει τις τιμές χωρίς
+normative assertion — δεν είναι bug, είναι όριο σχεδιασμού του δείκτη.
 
 ### Authorization — ενεργό σε όλα τα entities
 `app/core/dependencies.py`: `get_current_user` (decode JWT από
@@ -132,10 +173,15 @@ ADMIN-only). Όλα τα GET endpoints παραμένουν δημόσια, χω
 Επιβεβαιώθηκε end-to-end με live curl requests (register/login/POST με και
 χωρίς token → 200/201/401 όπως αναμενόταν).
 
-### Seed script (`app/scripts/seed.py`) — ενημερώθηκε 2026-08-02 βάσει SEED_DATA_SPEC.md
-9 countries/actors, **51 indicators**, **10 negotiation events (E1-E10, πλήρες
+### Seed script (`app/scripts/seed.py`) — ενημερώθηκε 2026-08-02/03 βάσει SEED_DATA_SPEC.md
+9 countries/actors, **59 indicators**, **10 negotiation events (E1-E10, πλήρες
 σετ του spec)**. Ρητές αποφάσεις αυτής της αναθεώρησης (όχι τυφλή υιοθέτηση
-του spec — βλ. λεπτομέρειες στο commit message όταν γίνει commit):
+του spec):
+- **2026-08-03: +8 Serbia indicators** (`GDP_growth`/`unemployment_rate` για
+  1998, 2000, 2018, 2020, confidence=EXACT) — τιμές από live World Bank API
+  query, ζητήθηκαν για να καλύψουν τα νέα `KEY_YEARS`. Επιβεβαιώθηκε ότι οι
+  ήδη υπάρχουσες τιμές ταιριάζουν ψηφίο-προς-ψηφίο με το live API πριν
+  προστεθούν οι νέες (αξιοπιστία πηγής).
 - Serbia `GDP_growth`/`unemployment_rate`: **παρέμειναν** οι live World Bank
   API τιμές (όχι του spec) — προστέθηκε `confidence=EXACT`
 - Freedom House scores (Serbia+Kosovo, 10 σημεία/χώρα): **υιοθετήθηκαν** οι
@@ -175,13 +221,15 @@ ADMIN-only). Όλα τα GET endpoints παραμένουν δημόσια, χω
   emoji, καθαρά cosmetic, καμία επίπτωση σε δεδομένα)
 
 ### Tests
-`backend/tests/`: 5 unit test files (fake repositories/monkeypatch, χωρίς
+`backend/tests/`: 6 unit test files (fake repositories/monkeypatch, χωρίς
 πραγματική ΒΔ: country, indicator, negotiation_event, negotiation_analysis,
-analytics) + 3 integration test files (πραγματικά HTTP requests μέσω
-`TestClient` σε SQLite in-memory: country, indicator, negotiation_event).
-Fixtures στο `conftest.py`: `client` (χωρίς auth, για GET-only tests) και
-`admin_client` (κάνει register+login ADMIN αυτόματα, βάζει `Authorization`
-header — χρησιμοποιείται σε όλα τα write tests). Σύνολο: **73 passed**.
+analytics) + `test_validation_targets.py` (**integration-style, πραγματική
+ΒΔ μέσω `SessionLocal`, όχι mocked** — μοναδική εξαίρεση στο πρότυπο) + 3
+integration test files (πραγματικά HTTP requests μέσω `TestClient` σε SQLite
+in-memory: country, indicator, negotiation_event). Fixtures στο `conftest.py`:
+`client` (χωρίς auth, για GET-only tests) και `admin_client` (κάνει
+register+login ADMIN αυτόματα, βάζει `Authorization` header). Σύνολο:
+**80 passed**.
 
 **Κενά στο test coverage** (εντοπίστηκαν 2026-08-02, δεν διορθώθηκαν ακόμα):
 - `User`/auth service (`register_user`, `authenticate_user`) δεν έχει δικό του
@@ -190,39 +238,24 @@ header — χρησιμοποιείται σε όλα τα write tests). Σύν�
   `analytics` endpoints (μόνο unit tests με mocks)
 
 **Επόμενο βήμα:**
-1. **Commit** των σημερινών (2026-08-02) αλλαγών — βλ. λίστα uncommitted
-   αρχείων στο τέλος αυτού του section, ΔΕΝ έχει γίνει ακόμα
-2. **SEED_DATA_SPEC.md Στάδιο 3** (εγκεκριμένο ως επόμενο βήμα, όχι ακόμα
-   ξεκινημένο): P1-P5 validation tests σε νέο `tests/unit/test_validation_targets.py`,
-   integration-style πάνω στην ήδη γεμάτη ΒΔ. **Πρέπει πρώτα να αποφασιστεί**
-   πώς αντιμετωπίζονται το P1 και μέρος του P2/P4 λόγω του κενού κάλυψης
-   δεδομένων (βλ. ⚠️ εύρημα στο Analytics core section πάνω) — δεν προχωράω
-   χωρίς αυτή την απόφαση
-3. Πραγματικό LLM integration στο `NegotiationAnalysis.create_analysis`
+1. **Push** στο GitHub — 4 commits ahead of `origin/main`, δεν έχει γίνει ακόμα
+2. Πραγματικό LLM integration στο `NegotiationAnalysis.create_analysis`
    (OpenAI API call, strict prompt μόνο πάνω σε δοθέν context, temperature=0,
    άρνηση αν λείπουν δεδομένα — βλ. κανόνες LLM integration στο CLAUDE.md)
-4. `POST /synthesis` endpoint (context = όλα τα events + scores, `is_synthesis=true`)
-5. Ανοιχτή απόφαση: `is_verified=true` σε World Bank/SIPRI-sourced indicators
+3. `POST /synthesis` endpoint (context = όλα τα events + scores, `is_synthesis=true`)
+4. Ανοιχτή απόφαση: `is_verified=true` σε World Bank/SIPRI-sourced indicators
    (όχι από τη διπλωματική) — βλ. "Data Sources" στο CLAUDE.md, ζήτημα ρητά
    σημειωμένο, όχι επιλυμένο
-6. Ανοιχτή απόφαση: ο `analytics` router κάνει `raise HTTPException` απευθείας
+5. Ανοιχτή απόφαση: ο `analytics` router κάνει `raise HTTPException` απευθείας
    αντί για custom domain exception + handler στο `main.py`, μόνη απόκλιση από
    το πρότυπο των υπόλοιπων routers
-7. Κενά test coverage (βλ. πάνω): unit tests για User service, integration
-   tests για negotiation-analyses/analytics
-8. Τα deferred indicators/event-markers του `SEED_DATA_SPEC.md` (§2.1-2.4,
+6. Κενά test coverage: unit tests για User service, integration tests για
+   negotiation-analyses/analytics
+7. Τα deferred indicators/event-markers του `SEED_DATA_SPEC.md` (§2.1-2.4,
    βλ. "Future Work" σχόλιο στο seed.py) — προαιρετικό, χαμηλή προτεραιότητα
-9. Docker Compose: μόνο η υπηρεσία `db` υπάρχει· λείπουν οι υπηρεσίες `api`/`frontend`
-10. README.md δεν έχει γραφτεί ακόμα (ο άνθρωπος-αναγνώστης διαβάζει αυτό, όχι το CLAUDE.md)
-11. Μετά: React frontend (`frontend/`, δεν έχει ξεκινήσει ακόμα — δεν υπάρχει καν ο φάκελος)
-
-**Uncommitted αρχεία αυτή τη στιγμή** (session 2026-08-02, μετά Στάδιο 1+2):
-`CLAUDE.md`, `PROJECT_PLAN.md`, `PROJECT_STATUS.md`,
-`backend/app/models/indicator.py`, `backend/app/models/negotiation_event.py`,
-`backend/app/schemas/indicator.py`, `backend/app/schemas/negotiation_event.py`,
-`backend/app/scripts/seed.py`, `backend/app/services/analytics.py`,
-`backend/requirements.txt`, νέο:
-`backend/alembic/versions/b536861761e3_add_confidence_to_indicators_and_.py`
+8. Docker Compose: μόνο η υπηρεσία `db` υπάρχει· λείπουν οι υπηρεσίες `api`/`frontend`
+9. README.md δεν έχει γραφτεί ακόμα (ο άνθρωπος-αναγνώστης διαβάζει αυτό, όχι το CLAUDE.md)
+10. Μετά: React frontend (`frontend/`, δεν έχει ξεκινήσει ακόμα — δεν υπάρχει καν ο φάκελος)
 
 **Ρητά ΟΧΙ τώρα (αποφασισμένο, future work):** live data-refresh endpoint που
 καλεί το World Bank API on-demand από FastAPI (ADMIN-only, workflow
