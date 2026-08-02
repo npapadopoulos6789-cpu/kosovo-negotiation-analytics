@@ -162,16 +162,37 @@ def find_optimal_agreement_period(db: Session, country_id: int) -> dict | None:
     return {"year": best_year, "power_index": best_score}
 
 
+def _most_recent_year_with_data(
+    db: Session, serbia_id: int, kosovo_id: int, year: int
+) -> int | None:
+    """
+    Το πιο πρόσφατο έτος στο KEY_YEARS πριν το `year` όπου ΚΑΙ οι δύο
+    χώρες έχουν πλήρες Power Index -- χρησιμοποιείται σαν `previous_year`
+    στο calculate_window_score. ΠΡΙΝ τη διόρθωση (2026-08-03), το
+    find_optimal_mutual_compromise_period χρησιμοποιούσε απλά το
+    προηγούμενο στοιχείο της λίστας KEY_YEARS, ό,τι δεδομένα κι αν είχε
+    -- με αραιά KEY_YEARS αυτό συχνά έπεφτε σε έτος χωρίς δεδομένα,
+    μηδενίζοντας αθόρυβα το trend_score (30% βάρος στο Window Score).
+    """
+    idx = KEY_YEARS.index(year)
+    for candidate in reversed(KEY_YEARS[:idx]):
+        if (
+            calculate_power_index(db, serbia_id, candidate) is not None
+            and calculate_power_index(db, kosovo_id, candidate) is not None
+        ):
+            return candidate
+    return None
+
+
 def find_optimal_mutual_compromise_period(
     db: Session, serbia_id: int, kosovo_id: int
 ) -> dict | None:
     best_year = None
     best_score = None
-    previous_year = None
 
     for year in KEY_YEARS:
+        previous_year = _most_recent_year_with_data(db, serbia_id, kosovo_id, year)
         score = calculate_window_score(db, serbia_id, kosovo_id, year, previous_year)
-        previous_year = year
 
         if score is None:
             continue

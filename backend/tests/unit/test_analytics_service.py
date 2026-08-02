@@ -185,6 +185,12 @@ def test_find_optimal_mutual_compromise_period_returns_best_year(monkeypatch):
     def fake_window_score(db, s, k, year, previous_year=None):
         return scores.get(year)
 
+    # calculate_power_index χρειάζεται mock εδώ επειδή το
+    # find_optimal_mutual_compromise_period το καλεί εσωτερικά (μέσω
+    # _most_recent_year_with_data) για να βρει ένα σωστό previous_year --
+    # η ίδια η τιμή δεν έχει σημασία σε αυτό το test, το fake_window_score
+    # αγνοεί το previous_year και κοιτάει μόνο το year
+    monkeypatch.setattr(analytics_service, "calculate_power_index", lambda db, c, y: 50.0)
     monkeypatch.setattr(analytics_service, "calculate_window_score", fake_window_score)
 
     result = analytics_service.find_optimal_mutual_compromise_period(db=None, serbia_id=1, kosovo_id=2)
@@ -193,6 +199,7 @@ def test_find_optimal_mutual_compromise_period_returns_best_year(monkeypatch):
 
 
 def test_find_optimal_mutual_compromise_period_returns_none_if_no_data(monkeypatch):
+    monkeypatch.setattr(analytics_service, "calculate_power_index", lambda db, c, y: None)
     monkeypatch.setattr(
         analytics_service, "calculate_window_score", lambda db, s, k, y, py=None: None
     )
@@ -200,6 +207,43 @@ def test_find_optimal_mutual_compromise_period_returns_none_if_no_data(monkeypat
     result = analytics_service.find_optimal_mutual_compromise_period(db=None, serbia_id=1, kosovo_id=2)
 
     assert result is None
+
+
+def test_most_recent_year_with_data_skips_years_missing_either_countrys_data(monkeypatch):
+    """
+    Regression test για το bug (διορθώθηκε 2026-08-03): πριν τη διόρθωση,
+    το find_optimal_mutual_compromise_period χρησιμοποιούσε σαν
+    previous_year απλά το προηγούμενο στοιχείο της λίστας KEY_YEARS, ό,τι
+    δεδομένα κι αν είχε -- με αραιά KEY_YEARS αυτό συχνά έπεφτε σε έτος
+    χωρίς δεδομένα, μηδενίζοντας αθόρυβα το trend_score (30% βάρος στο
+    Window Score). Εδώ: KEY_YEARS=[2005,2008,2013], το 2008 (αμέσως πριν
+    το 2013) ΔΕΝ έχει δεδομένα, αλλά το 2005 έχει -- το previous_year
+    για το 2013 πρέπει να είναι 2005, όχι 2008.
+    """
+    pi_values = {
+        (1, 2005): 40.0, (2, 2005): 40.0,
+        (1, 2008): None, (2, 2008): None,
+        (1, 2013): 60.0, (2, 2013): 60.0,
+    }
+    monkeypatch.setattr(
+        analytics_service, "calculate_power_index",
+        lambda db, country_id, year: pi_values.get((country_id, year)),
+    )
+
+    used_previous_years = []
+
+    def fake_window_score(db, s, k, year, previous_year=None):
+        used_previous_years.append((year, previous_year))
+        return {2005: 50.0, 2008: None, 2013: 70.0}.get(year)
+
+    monkeypatch.setattr(analytics_service, "calculate_window_score", fake_window_score)
+    monkeypatch.setattr(analytics_service, "KEY_YEARS", [2005, 2008, 2013])
+
+    result = analytics_service.find_optimal_mutual_compromise_period(db=None, serbia_id=1, kosovo_id=2)
+
+    assert result == {"year": 2013, "window_score": 70.0}
+    assert (2013, 2005) in used_previous_years
+    assert (2013, 2008) not in used_previous_years
 
 
 def make_fake_event(id, title, event_date, ripeness_status=None, zopa_size=None):
