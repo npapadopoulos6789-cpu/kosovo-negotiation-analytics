@@ -9,20 +9,17 @@ from app.repositories import indicator as indicator_repository
 from app.repositories import negotiation_event as event_repository
 
 
-# Σταθερά, τεκμηριωμένα όρια normalization ανά indicator_type.
-# ΣΗΜΑΝΤΙΚΟ: αυτά είναι παραδοχές, όχι εμπειρικά εξαγόμενες τιμές --
-# τεκμηριώνονται ρητά στο README, ενότητα "Methodology & Limitations".
 NORMALIZATION_RANGES = {
-    "GDP_growth": (-20.0, 10.0),            # % ετήσια μεταβολή
-    "freedom_house_score": (0.0, 100.0),     # ήδη σε κλίμακα 0-100
-    "troop_presence_index": (0.0, 100.0),     # ήδη σε κλίμακα 0-100
+    "GDP_growth": (-20.0, 10.0),
+    "freedom_house_score": (0.0, 100.0),
+    "troop_presence_index": (0.0, 100.0),
 }
 
 
 def normalize(value: float, indicator_type: str) -> float:
     """
-    Μετατρέπει μια "ωμή" τιμή (π.χ. GDP growth = 2.6) σε κλίμακα 0-100,
-    βάσει προκαθορισμένων ορίων min/max.
+    Μετατρέπει μια "ωμή" τιμή σε κλίμακα 0-100, βάσει προκαθορισμένων
+    ορίων min/max.
     """
     if indicator_type not in NORMALIZATION_RANGES:
         raise ValueError(f"Δεν υπάρχουν normalization όρια για '{indicator_type}'")
@@ -38,12 +35,8 @@ def get_category_score(
     db: Session, country_id: int, year: int, category: str
 ) -> float | None:
     """
-    Επιστρέφει το μέσο όρο των normalized τιμών όλων των Indicators
-    μιας συγκεκριμένης κατηγορίας (ECONOMIC/MILITARY/SOCIAL_UNREST),
-    για μια χώρα σε ένα έτος.
-
-    Επιστρέφει None αν δεν υπάρχει ΚΑΝΕΝΑ Indicator αυτής της
-    κατηγορίας για αυτή τη χώρα/έτος -- δεν "μαντεύουμε" τιμή.
+    Μέσος όρος normalized τιμών όλων των Indicators μιας κατηγορίας,
+    για μια χώρα σε ένα έτος. None αν δεν υπάρχουν δεδομένα.
     """
     all_indicators = indicator_repository.get_by_country(db, country_id)
 
@@ -58,3 +51,30 @@ def get_category_score(
     normalized_values = [normalize(ind.value, ind.indicator_type) for ind in matching]
     average = sum(normalized_values) / len(normalized_values)
     return round(average, 2)
+
+
+POWER_INDEX_WEIGHTS = {
+    "ECONOMIC": 0.40,
+    "MILITARY": 0.40,
+    "SOCIAL_UNREST": 0.20,
+}
+
+
+def calculate_power_index(db: Session, country_id: int, year: int) -> float | None:
+    """
+    Συνδυάζει τα 3 category scores μιας χώρας σε ένα έτος, με τα
+    σταθερά βάρη 40/40/20. None αν λείπει έστω μία κατηγορία.
+    """
+    economic = get_category_score(db, country_id, year, "ECONOMIC")
+    military = get_category_score(db, country_id, year, "MILITARY")
+    social = get_category_score(db, country_id, year, "SOCIAL_UNREST")
+
+    if economic is None or military is None or social is None:
+        return None
+
+    power_index = (
+        economic * POWER_INDEX_WEIGHTS["ECONOMIC"]
+        + military * POWER_INDEX_WEIGHTS["MILITARY"]
+        + social * POWER_INDEX_WEIGHTS["SOCIAL_UNREST"]
+    )
+    return round(power_index, 2)

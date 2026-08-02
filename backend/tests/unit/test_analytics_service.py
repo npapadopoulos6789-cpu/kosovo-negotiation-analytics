@@ -59,3 +59,28 @@ def test_get_category_score_returns_none_when_no_data(monkeypatch):
     result = analytics_service.get_category_score(db=None, country_id=1, year=2013, category="MILITARY")
 
     assert result is None
+
+
+def test_calculate_power_index_combines_categories(monkeypatch):
+    def fake_get_category_score(db, country_id, year, category):
+        scores = {"ECONOMIC": 80.0, "MILITARY": 60.0, "SOCIAL_UNREST": 50.0}
+        return scores[category]
+
+    monkeypatch.setattr(analytics_service, "get_category_score", fake_get_category_score)
+
+    result = analytics_service.calculate_power_index(db=None, country_id=1, year=2013)
+
+    assert result == 66.0
+
+
+def test_calculate_power_index_returns_none_if_category_missing(monkeypatch):
+    def fake_get_category_score(db, country_id, year, category):
+        if category == "MILITARY":
+            return None
+        return 80.0
+
+    monkeypatch.setattr(analytics_service, "get_category_score", fake_get_category_score)
+
+    result = analytics_service.calculate_power_index(db=None, country_id=1, year=2013)
+
+    assert result is None
