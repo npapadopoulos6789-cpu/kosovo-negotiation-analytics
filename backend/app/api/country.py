@@ -1,3 +1,5 @@
+from app.core.dependencies import require_admin
+from app.models.user import User
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
@@ -19,15 +21,28 @@ def get_country(country_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=CountryRead, status_code=status.HTTP_201_CREATED)
-def create_country(payload: CountryCreate, db: Session = Depends(get_db)):
+def create_country(
+    payload: CountryCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
     return country_service.create_country(db, payload)
 
 
 @router.put("/{country_id}", response_model=CountryRead)
-def update_country(country_id: int, payload: CountryUpdate, db: Session = Depends(get_db)):
+def update_country(
+    country_id: int,
+    payload: CountryUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
     return country_service.update_country(db, country_id, payload)
 
 
 @router.delete("/{country_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_country(country_id: int, db: Session = Depends(get_db)):
+def delete_country(
+    country_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
     country_service.delete_country(db, country_id)

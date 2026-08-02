@@ -1,8 +1,8 @@
-def test_create_event_with_participants(client):
-    serbia = client.post("/countries", json={"name": "Serbia"}).json()
-    kosovo = client.post("/countries", json={"name": "Kosovo"}).json()
+def test_create_event_with_participants(admin_client):
+    serbia = admin_client.post("/countries", json={"name": "Serbia"}).json()
+    kosovo = admin_client.post("/countries", json={"name": "Kosovo"}).json()
 
-    response = client.post("/negotiation-events", json={
+    response = admin_client.post("/negotiation-events", json={
         "title": "Rambouillet Talks",
         "date": "1999-02-06",
         "zopa_size": "NARROW",
@@ -22,8 +22,8 @@ def test_create_event_with_participants(client):
     assert body["participants"][0]["country_name"] in ("Serbia", "Kosovo")
 
 
-def test_create_event_with_invalid_weights_returns_422(client):
-    response = client.post("/negotiation-events", json={
+def test_create_event_with_invalid_weights_returns_422(admin_client):
+    response = admin_client.post("/negotiation-events", json={
         "title": "Test Event",
         "date": "2000-01-01",
         "economic_weight": 5,
@@ -34,8 +34,8 @@ def test_create_event_with_invalid_weights_returns_422(client):
     assert response.status_code == 422
 
 
-def test_create_event_with_unknown_participant_country_returns_404(client):
-    response = client.post("/negotiation-events", json={
+def test_create_event_with_unknown_participant_country_returns_404(admin_client):
+    response = admin_client.post("/negotiation-events", json={
         "title": "Test Event",
         "date": "2000-01-01",
         "economic_weight": 4,

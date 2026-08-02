@@ -21,6 +21,8 @@ from app.core.database import Base
 from app.models.country import Country
 from app.models.indicator import Indicator
 from app.models.negotiation_event import NegotiationEvent, EventParticipant
+from app.models.user import User
+from app.models.negotiation_analysis import NegotiationAnalysis
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.dependencies import require_admin
+from app.models.user import User
 from app.services import negotiation_event as event_service
 from app.schemas.negotiation_event import (
     NegotiationEventCreate, NegotiationEventUpdate, NegotiationEventRead
@@ -21,15 +23,28 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=NegotiationEventRead, status_code=201)
-def create_event(payload: NegotiationEventCreate, db: Session = Depends(get_db)):
+def create_event(
+    payload: NegotiationEventCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
     return event_service.create_event(db, payload)
 
 
 @router.put("/{event_id}", response_model=NegotiationEventRead)
-def update_event(event_id: int, payload: NegotiationEventUpdate, db: Session = Depends(get_db)):
+def update_event(
+    event_id: int,
+    payload: NegotiationEventUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
     return event_service.update_event(db, event_id, payload)
 
 
 @router.delete("/{event_id}", status_code=204)
-def delete_event(event_id: int, db: Session = Depends(get_db)):
+def delete_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
     event_service.delete_event(db, event_id)

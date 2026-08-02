@@ -1,10 +1,10 @@
-def test_create_and_get_indicator(client):
+def test_create_and_get_indicator(client, admin_client):
     # Πρώτα φτιάχνουμε μια πραγματική χώρα μέσω του API (integration test
     # σημαίνει: όλα περνάνε από πραγματικά HTTP requests, όχι fakes)
-    country_response = client.post("/countries", json={"name": "Serbia"})
+    country_response = admin_client.post("/countries", json={"name": "Serbia"})
     country_id = country_response.json()["id"]
 
-    create_response = client.post("/indicators", json={
+    create_response = admin_client.post("/indicators", json={
         "country_id": country_id,
         "category": "ECONOMIC",
         "indicator_type": "GDP_growth",
@@ -19,8 +19,8 @@ def test_create_and_get_indicator(client):
     assert get_response.json()["value"] == 2.6
 
 
-def test_create_indicator_with_missing_country_returns_404(client):
-    response = client.post("/indicators", json={
+def test_create_indicator_with_missing_country_returns_404(admin_client):
+    response = admin_client.post("/indicators", json={
         "country_id": 999,
         "category": "ECONOMIC",
         "indicator_type": "GDP_growth",
@@ -31,15 +31,15 @@ def test_create_indicator_with_missing_country_returns_404(client):
     assert response.status_code == 404
 
 
-def test_list_indicators_by_country(client):
-    serbia = client.post("/countries", json={"name": "Serbia"}).json()
-    kosovo = client.post("/countries", json={"name": "Kosovo"}).json()
+def test_list_indicators_by_country(client, admin_client):
+    serbia = admin_client.post("/countries", json={"name": "Serbia"}).json()
+    kosovo = admin_client.post("/countries", json={"name": "Kosovo"}).json()
 
-    client.post("/indicators", json={
+    admin_client.post("/indicators", json={
         "country_id": serbia["id"], "category": "ECONOMIC",
         "indicator_type": "GDP_growth", "year": 2013, "value": 2.6,
     })
-    client.post("/indicators", json={
+    admin_client.post("/indicators", json={
         "country_id": kosovo["id"], "category": "ECONOMIC",
         "indicator_type": "GDP_growth", "year": 2013, "value": 1.1,
     })

@@ -1,5 +1,5 @@
-def test_create_and_get_country(client):
-    create_response = client.post("/countries", json={"name": "Serbia", "actor_type": "STATE"})
+def test_create_and_get_country(client, admin_client):
+    create_response = admin_client.post("/countries", json={"name": "Serbia", "actor_type": "STATE"})
     assert create_response.status_code == 201
     country_id = create_response.json()["id"]
 
@@ -8,9 +8,9 @@ def test_create_and_get_country(client):
     assert get_response.json()["name"] == "Serbia"
 
 
-def test_list_countries_returns_created_entries(client):
-    client.post("/countries", json={"name": "Serbia"})
-    client.post("/countries", json={"name": "Kosovo"})
+def test_list_countries_returns_created_entries(client, admin_client):
+    admin_client.post("/countries", json={"name": "Serbia"})
+    admin_client.post("/countries", json={"name": "Kosovo"})
 
     response = client.get("/countries")
 
@@ -25,25 +25,25 @@ def test_get_missing_country_returns_404(client):
     assert response.status_code == 404
 
 
-def test_create_duplicate_name_returns_409(client):
-    client.post("/countries", json={"name": "Serbia"})
+def test_create_duplicate_name_returns_409(admin_client):
+    admin_client.post("/countries", json={"name": "Serbia"})
 
-    response = client.post("/countries", json={"name": "Serbia"})
+    response = admin_client.post("/countries", json={"name": "Serbia"})
 
     assert response.status_code == 409
 
 
-def test_create_country_missing_name_returns_422(client):
-    response = client.post("/countries", json={})
+def test_create_country_missing_name_returns_422(admin_client):
+    response = admin_client.post("/countries", json={})
 
     assert response.status_code == 422
 
 
-def test_update_country(client):
-    create_response = client.post("/countries", json={"name": "Serbia"})
+def test_update_country(admin_client):
+    create_response = admin_client.post("/countries", json={"name": "Serbia"})
     country_id = create_response.json()["id"]
 
-    update_response = client.put(
+    update_response = admin_client.put(
         f"/countries/{country_id}", json={"recognized_kosovo": False}
     )
 
@@ -51,17 +51,17 @@ def test_update_country(client):
     assert update_response.json()["recognized_kosovo"] is False
 
 
-def test_update_missing_country_returns_404(client):
-    response = client.put("/countries/999", json={"name": "X"})
+def test_update_missing_country_returns_404(admin_client):
+    response = admin_client.put("/countries/999", json={"name": "X"})
 
     assert response.status_code == 404
 
 
-def test_delete_country(client):
-    create_response = client.post("/countries", json={"name": "Serbia"})
+def test_delete_country(client, admin_client):
+    create_response = admin_client.post("/countries", json={"name": "Serbia"})
     country_id = create_response.json()["id"]
 
-    delete_response = client.delete(f"/countries/{country_id}")
+    delete_response = admin_client.delete(f"/countries/{country_id}")
     assert delete_response.status_code == 204
 
     get_response = client.get(f"/countries/{country_id}")
