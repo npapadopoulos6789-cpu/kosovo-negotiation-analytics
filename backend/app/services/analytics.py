@@ -83,12 +83,6 @@ def calculate_trend_score(
     current_serbia: float, previous_serbia: float,
     current_kosovo: float, previous_kosovo: float,
 ) -> float:
-    """
-    Μετράει πόσο "αμοιβαία πτωτική" ήταν η τάση ισχύος -- κατά Zartman,
-    ένδειξη "mutually hurting stalemate". Μόνο η ΘΕΤΙΚΗ πτώση μετράει.
-    Μια πτώση 30 μονάδων θεωρείται η μέγιστη ένταση -- παραδοχή,
-    τεκμηριωμένη στο README.
-    """
     serbia_decline = max(0.0, previous_serbia - current_serbia)
     kosovo_decline = max(0.0, previous_kosovo - current_kosovo)
     avg_decline = (serbia_decline + kosovo_decline) / 2
@@ -98,10 +92,6 @@ def calculate_trend_score(
 def calculate_social_pressure_score(
     db: Session, serbia_id: int, kosovo_id: int, year: int
 ) -> float | None:
-    """
-    Όσο χαμηλότερη η κοινωνική σταθερότητα και των δύο πλευρών, τόσο
-    υψηλότερη η "πίεση" προς συμφωνία.
-    """
     serbia_social = get_category_score(db, serbia_id, year, "SOCIAL_UNREST")
     kosovo_social = get_category_score(db, kosovo_id, year, "SOCIAL_UNREST")
 
@@ -119,12 +109,6 @@ def calculate_window_score(
     year: int,
     previous_year: int | None = None,
 ) -> float | None:
-    """
-    Negotiation Window Score (0-100): 50% συμμετρία ισχύος +
-    30% αμοιβαία πτωτική τάση + 20% κοινωνική πίεση.
-    Το previous_year είναι προαιρετικό -- αν δεν δοθεί, η "τάση"
-    θεωρείται ουδέτερη (0), ρητά τεκμηριωμένη παραδοχή.
-    """
     gap = calculate_power_gap(db, serbia_id, kosovo_id, year)
     if gap is None:
         return None
@@ -152,3 +136,115 @@ def calculate_window_score(
         + social_pressure * 0.20
     )
     return round(window_score, 2)
+
+
+# Τα έτη-κλειδιά της διπλωματικής -- εδώ έχουμε πραγματικά δεδομένα
+KEY_YEARS = [1999, 2005, 2007, 2008, 2013, 2023]
+
+
+def find_optimal_agreement_period(db: Session, country_id: int) -> dict | None:
+    """
+    Βρίσκει το έτος-κλειδί με το υψηλότερο Power Index για μια
+    συγκεκριμένη χώρα -- η στιγμή μέγιστης διαπραγματευτικής ισχύος.
+    """
+    best_year = None
+    best_score = None
+
+    for year in KEY_YEARS:
+        score = calculate_power_index(db, country_id, year)
+        if score is None:
+            continue
+        if best_score is None or score > best_score:
+            best_score = score
+            best_year = year
+
+    if best_year is None:
+        return None
+
+    return {"year": best_year, "power_index": best_score}
+
+
+def find_optimal_mutual_compromise_period(
+    db: Session, serbia_id: int, kosovo_id: int
+) -> dict | None:
+    """
+    Βρίσκει το έτος-κλειδί με το υψηλότερο Negotiation Window Score --
+    κατά Zartman, η στιγμή "mutually hurting stalemate" όπου αμοιβαίος
+    συμβιβασμός είναι πιο πιθανός.
+    """
+    best_year = None
+    best_score = None
+    previous_year = None
+
+    for year in KEY_YEARS:
+        score = calculate_window_score(db, serbia_id, kosovo_id, year, previous_year)
+        previous_year = year
+
+        if score is None:
+            continue
+        if best_score is None or score > best_score:
+            best_score = score
+            best_year = year
+
+    if best_year is None:
+        return None
+
+    return {"year": best_year, "window_score": best_score}
+
+
+# Παραδοχή: Window Score >= 60 θεωρείται "ποσοτικά θετική" ένδειξη
+# ώριμης στιγμής -- τεκμηριωμένο όριο, βλ. README.
+BEST_MOMENT_THRESHOLD = 60.0
+
+
+def find_best_moments(db: Session, serbia_id: int, kosovo_id: int) -> list[dict]:
+    """
+    Συνδυάζει την ΠΟΙΟΤΙΚΗ ανάλυση κάθε event (ripeness_status/zopa_size,
+    από τη διπλωματική) με τον ΠΟΣΟΤΙΚΟ Window Score (υπολογισμένο),
+    και επιστρέφει ένα "confidence level" ανά event:
+
+    - HIGH:   και οι δύο πηγές συμφωνούν ότι ήταν ώριμη στιγμή
+    - MEDIUM: μόνο η μία πηγή δείχνει ώριμη στιγμή
+    - LOW:    καμία πηγή δεν δείχνει ώριμη στιγμή
+
+    Αυτό ΔΕΝ είναι "απόδειξη" -- είναι έλεγχος σύγκλισης (convergent
+    validity) ανάμεσα σε ανεξάρτητη ποιοτική και ποσοτική ανάλυση.
+    """
+    events = event_repository.get_all(db)
+    results = []
+    previous_year = None
+
+    for event in events:
+        year = event.date.year
+        if year not in KEY_YEARS:
+            continue
+
+        qualitative_positive = (
+            (event.ripeness_status is not None and event.ripeness_status.value == "RIPE")
+            or (event.zopa_size is not None and event.zopa_size.value == "WIDE")
+        )
+
+        idx = KEY_YEARS.index(year)
+        prev = KEY_YEARS[idx - 1] if idx > 0 else None
+        window_score = calculate_window_score(db, serbia_id, kosovo_id, year, prev)
+        quantitative_positive = (
+            window_score is not None and window_score >= BEST_MOMENT_THRESHOLD
+        )
+
+        if qualitative_positive and quantitative_positive:
+            confidence = "HIGH"
+        elif qualitative_positive or quantitative_positive:
+            confidence = "MEDIUM"
+        else:
+            confidence = "LOW"
+
+        results.append({
+            "event_id": event.id,
+            "title": event.title,
+            "year": year,
+            "qualitative_positive": qualitative_positive,
+            "window_score": window_score,
+            "confidence": confidence,
+        })
+
+    return results

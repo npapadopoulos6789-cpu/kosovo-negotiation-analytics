@@ -6,6 +6,7 @@ from app.api.indicator import router as indicator_router
 from app.api.negotiation_event import router as negotiation_event_router
 from app.api.auth import router as auth_router
 from app.api.negotiation_analysis import router as negotiation_analysis_router
+from app.api.analytics import router as analytics_router
 from app.services.country import CountryNotFoundError, DuplicateCountryNameError
 from app.services.indicator import IndicatorNotFoundError, CountryForIndicatorNotFoundError
 from app.services.negotiation_event import (
@@ -23,6 +24,7 @@ app.include_router(indicator_router)
 app.include_router(negotiation_event_router)
 app.include_router(auth_router)
 app.include_router(negotiation_analysis_router)
+app.include_router(analytics_router)
 
 
 @app.exception_handler(CountryNotFoundError)

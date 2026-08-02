@@ -1,4 +1,5 @@
 import pytest
+from datetime import date
 from unittest.mock import MagicMock
 
 from app.models.indicator import Indicator
@@ -109,8 +110,6 @@ def test_calculate_power_gap_returns_none_if_missing_data(monkeypatch):
 
 
 def test_calculate_trend_score_both_declining():
-    # Serbia: 70 -> 50 (πτώση 20), Kosovo: 60 -> 45 (πτώση 15)
-    # avg_decline = 17.5, / 30 * 100 = 58.33
     result = analytics_service.calculate_trend_score(
         current_serbia=50.0, previous_serbia=70.0,
         current_kosovo=45.0, previous_kosovo=60.0,
@@ -119,8 +118,6 @@ def test_calculate_trend_score_both_declining():
 
 
 def test_calculate_trend_score_ignores_increase():
-    # Serbia ΑΥΞΗΘΗΚΕ (δεν μετράει ως "decline", γίνεται 0)
-    # Kosovo έπεσε 10 -> avg_decline = 5, /30*100 = 16.67
     result = analytics_service.calculate_trend_score(
         current_serbia=80.0, previous_serbia=70.0,
         current_kosovo=50.0, previous_kosovo=60.0,
@@ -138,8 +135,6 @@ def test_calculate_window_score_without_previous_year(monkeypatch):
         db=None, serbia_id=1, kosovo_id=2, year=2013, previous_year=None
     )
 
-    # symmetry = 100-20=80, trend=0 (no previous_year), social=60
-    # 80*0.5 + 0*0.3 + 60*0.2 = 40 + 0 + 12 = 52
     assert result == 52.0
 
 
@@ -151,3 +146,116 @@ def test_calculate_window_score_returns_none_if_gap_missing(monkeypatch):
     )
 
     assert result is None
+
+
+def test_find_optimal_agreement_period_returns_best_year(monkeypatch):
+    def fake_power_index(db, country_id, year):
+        scores = {1999: 68.5, 2005: 55.0, 2013: 41.2, 2023: 50.0}
+        return scores.get(year)
+
+    monkeypatch.setattr(analytics_service, "calculate_power_index", fake_power_index)
+
+    result = analytics_service.find_optimal_agreement_period(db=None, country_id=1)
+
+    assert result == {"year": 1999, "power_index": 68.5}
+
+
+def test_find_optimal_agreement_period_skips_missing_years(monkeypatch):
+    def fake_power_index(db, country_id, year):
+        return 60.0 if year == 2013 else None
+
+    monkeypatch.setattr(analytics_service, "calculate_power_index", fake_power_index)
+
+    result = analytics_service.find_optimal_agreement_period(db=None, country_id=1)
+
+    assert result == {"year": 2013, "power_index": 60.0}
+
+
+def test_find_optimal_agreement_period_returns_none_if_no_data(monkeypatch):
+    monkeypatch.setattr(analytics_service, "calculate_power_index", lambda db, c, y: None)
+
+    result = analytics_service.find_optimal_agreement_period(db=None, country_id=1)
+
+    assert result is None
+
+
+def test_find_optimal_mutual_compromise_period_returns_best_year(monkeypatch):
+    scores = {1999: 40.0, 2005: 55.0, 2007: 50.0, 2008: 45.0, 2013: 82.3, 2023: 61.0}
+
+    def fake_window_score(db, s, k, year, previous_year=None):
+        return scores.get(year)
+
+    monkeypatch.setattr(analytics_service, "calculate_window_score", fake_window_score)
+
+    result = analytics_service.find_optimal_mutual_compromise_period(db=None, serbia_id=1, kosovo_id=2)
+
+    assert result == {"year": 2013, "window_score": 82.3}
+
+
+def test_find_optimal_mutual_compromise_period_returns_none_if_no_data(monkeypatch):
+    monkeypatch.setattr(
+        analytics_service, "calculate_window_score", lambda db, s, k, y, py=None: None
+    )
+
+    result = analytics_service.find_optimal_mutual_compromise_period(db=None, serbia_id=1, kosovo_id=2)
+
+    assert result is None
+
+
+def make_fake_event(id, title, event_date, ripeness_status=None, zopa_size=None):
+    ev = MagicMock()
+    ev.id = id
+    ev.title = title
+    ev.date = event_date
+    if ripeness_status:
+        ev.ripeness_status = MagicMock()
+        ev.ripeness_status.value = ripeness_status
+    else:
+        ev.ripeness_status = None
+    if zopa_size:
+        ev.zopa_size = MagicMock()
+        ev.zopa_size.value = zopa_size
+    else:
+        ev.zopa_size = None
+    return ev
+
+
+def test_find_best_moments_high_confidence_when_both_agree(monkeypatch):
+    fake_events = [
+        make_fake_event(1, "Brussels Agreement", date(2013, 4, 19), ripeness_status="RIPE", zopa_size="WIDE"),
+    ]
+    monkeypatch.setattr(analytics_service.event_repository, "get_all", lambda db: fake_events)
+    monkeypatch.setattr(
+        analytics_service, "calculate_window_score", lambda db, s, k, y, py=None: 82.3
+    )
+
+    result = analytics_service.find_best_moments(db=None, serbia_id=1, kosovo_id=2)
+
+    assert len(result) == 1
+    assert result[0]["confidence"] == "HIGH"
+    assert result[0]["title"] == "Brussels Agreement"
+
+
+def test_find_best_moments_low_confidence_when_neither_agree(monkeypatch):
+    fake_events = [
+        make_fake_event(1, "Rambouillet Talks", date(1999, 2, 6), ripeness_status="NOT_RIPE", zopa_size="NARROW"),
+    ]
+    monkeypatch.setattr(analytics_service.event_repository, "get_all", lambda db: fake_events)
+    monkeypatch.setattr(
+        analytics_service, "calculate_window_score", lambda db, s, k, y, py=None: 30.0
+    )
+
+    result = analytics_service.find_best_moments(db=None, serbia_id=1, kosovo_id=2)
+
+    assert result[0]["confidence"] == "LOW"
+
+
+def test_find_best_moments_skips_events_outside_key_years(monkeypatch):
+    fake_events = [
+        make_fake_event(1, "Some Event", date(2001, 1, 1)),
+    ]
+    monkeypatch.setattr(analytics_service.event_repository, "get_all", lambda db: fake_events)
+
+    result = analytics_service.find_best_moments(db=None, serbia_id=1, kosovo_id=2)
+
+    assert result == []
