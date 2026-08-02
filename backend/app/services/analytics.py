@@ -13,6 +13,9 @@ NORMALIZATION_RANGES = {
     "GDP_growth": (-20.0, 10.0),
     "freedom_house_score": (0.0, 100.0),
     "troop_presence_index": (0.0, 100.0),
+    "unemployment_rate": (0.0, 60.0),
+    "trade_share_eu": (0.0, 100.0),
+    "military_expenditure_pct_gdp": (0.0, 8.0),
 }
 
 
@@ -138,15 +141,10 @@ def calculate_window_score(
     return round(window_score, 2)
 
 
-# Τα έτη-κλειδιά της διπλωματικής -- εδώ έχουμε πραγματικά δεδομένα
 KEY_YEARS = [1999, 2005, 2007, 2008, 2013, 2023]
 
 
 def find_optimal_agreement_period(db: Session, country_id: int) -> dict | None:
-    """
-    Βρίσκει το έτος-κλειδί με το υψηλότερο Power Index για μια
-    συγκεκριμένη χώρα -- η στιγμή μέγιστης διαπραγματευτικής ισχύος.
-    """
     best_year = None
     best_score = None
 
@@ -167,11 +165,6 @@ def find_optimal_agreement_period(db: Session, country_id: int) -> dict | None:
 def find_optimal_mutual_compromise_period(
     db: Session, serbia_id: int, kosovo_id: int
 ) -> dict | None:
-    """
-    Βρίσκει το έτος-κλειδί με το υψηλότερο Negotiation Window Score --
-    κατά Zartman, η στιγμή "mutually hurting stalemate" όπου αμοιβαίος
-    συμβιβασμός είναι πιο πιθανός.
-    """
     best_year = None
     best_score = None
     previous_year = None
@@ -192,27 +185,12 @@ def find_optimal_mutual_compromise_period(
     return {"year": best_year, "window_score": best_score}
 
 
-# Παραδοχή: Window Score >= 60 θεωρείται "ποσοτικά θετική" ένδειξη
-# ώριμης στιγμής -- τεκμηριωμένο όριο, βλ. README.
 BEST_MOMENT_THRESHOLD = 60.0
 
 
 def find_best_moments(db: Session, serbia_id: int, kosovo_id: int) -> list[dict]:
-    """
-    Συνδυάζει την ΠΟΙΟΤΙΚΗ ανάλυση κάθε event (ripeness_status/zopa_size,
-    από τη διπλωματική) με τον ΠΟΣΟΤΙΚΟ Window Score (υπολογισμένο),
-    και επιστρέφει ένα "confidence level" ανά event:
-
-    - HIGH:   και οι δύο πηγές συμφωνούν ότι ήταν ώριμη στιγμή
-    - MEDIUM: μόνο η μία πηγή δείχνει ώριμη στιγμή
-    - LOW:    καμία πηγή δεν δείχνει ώριμη στιγμή
-
-    Αυτό ΔΕΝ είναι "απόδειξη" -- είναι έλεγχος σύγκλισης (convergent
-    validity) ανάμεσα σε ανεξάρτητη ποιοτική και ποσοτική ανάλυση.
-    """
     events = event_repository.get_all(db)
     results = []
-    previous_year = None
 
     for event in events:
         year = event.date.year

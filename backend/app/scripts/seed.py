@@ -4,15 +4,14 @@ Seed script -- γεμίζει τη ΒΔ με τα δεδομένα της διπ
 
 ΠΗΓΕΣ:
 - Economic (GDP growth, unemployment): World Bank API, πραγματικά δεδομένα
-- Military (% GDP δαπανών): World Bank API (πηγή SIPRI), πραγματικά δεδομένα
-  ΓΙΑ ΤΗ ΣΕΡΒΙΑ. Για το Κόσοβο δεν υπάρχει API δεδομένο -- χρησιμοποιείται
-  τεκμηριωμένη εκτίμηση έντασης στρατιωτικής παρουσίας (KFOR/NATO), βάσει
-  του αφηγηματικού κειμένου της διπλωματικής.
-- Social (Freedom House score): ανάγνωση από το Γράφημα 1.11 της
-  διπλωματικής (Nations in Transit, δεν υπάρχει δημόσιο API)
-- Kosovo unemployment (1999-2008): ανάγνωση από το Γράφημα 1.5 της
-  διπλωματικής (ILO/World Bank Open Data, το ίδιο API δεν καλύπτει
-  αυτή την περίοδο για το Κόσοβο)
+- Military (% GDP δαπανών, Σερβία): World Bank API (πηγή SIPRI), πραγματικά
+- Military (Κόσοβο): τεκμηριωμένη εκτίμηση έντασης ξένης στρατιωτικής
+  παρουσίας (KFOR/NATO), βάσει αφηγηματικού κειμένου διπλωματικής
+- Social (Freedom House score): Γράφημα 1.11 διπλωματικής
+- Kosovo unemployment (2005-2008): Γράφημα 1.5 διπλωματικής (ILO/WB, δεν
+  καλύπτεται από το World Bank API για αυτή την περίοδο)
+- Εμπορικά μερίδια με ΕΕ (trade_share_eu): Γραφήματα 1.6/1.7/1.8
+  διπλωματικής (Council of the EU / European Commission)
 """
 from app.core.database import SessionLocal
 from app.services import country as country_service
@@ -51,10 +50,6 @@ def seed_countries(db):
 
 
 def seed_indicators(db, country_ids: dict):
-    """
-    Πραγματικά δεδομένα από World Bank API (Serbia πλήρη, Kosovo μερικά) +
-    δεδομένα διαβασμένα από τα γραφήματα της διπλωματικής, ρητά σημειωμένα.
-    """
     serbia_id = country_ids["Serbia"]
     kosovo_id = country_ids["Kosovo"]
 
@@ -66,6 +61,15 @@ def seed_indicators(db, country_ids: dict):
         (serbia_id, "ECONOMIC", "GDP_growth", 2008, 5.16, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)"),
         (serbia_id, "ECONOMIC", "GDP_growth", 2013, 0.45, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)"),
         (serbia_id, "ECONOMIC", "GDP_growth", 2023, 3.75, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)"),
+
+        (serbia_id, "ECONOMIC", "unemployment_rate", 1999, 13.70, "%", "World Bank API (SL.UEM.TOTL.ZS)"),
+        (serbia_id, "ECONOMIC", "unemployment_rate", 2005, 20.85, "%", "World Bank API (SL.UEM.TOTL.ZS)"),
+        (serbia_id, "ECONOMIC", "unemployment_rate", 2007, 18.06, "%", "World Bank API (SL.UEM.TOTL.ZS)"),
+        (serbia_id, "ECONOMIC", "unemployment_rate", 2008, 13.67, "%", "World Bank API (SL.UEM.TOTL.ZS)"),
+        (serbia_id, "ECONOMIC", "unemployment_rate", 2013, 22.15, "%", "World Bank API (SL.UEM.TOTL.ZS)"),
+        (serbia_id, "ECONOMIC", "unemployment_rate", 2023, 8.27, "%", "World Bank API (SL.UEM.TOTL.ZS)"),
+
+        (serbia_id, "ECONOMIC", "trade_share_eu", 2023, 60.0, "%", "European Commission/IMF/Statistical Office of Serbia, Γράφημα 1.8 διπλωματικής"),
 
         # ============ SERBIA — MILITARY (World Bank API, πηγή SIPRI, πραγματικά) ============
         (serbia_id, "MILITARY", "military_expenditure_pct_gdp", 1999, 3.53, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)"),
@@ -82,16 +86,18 @@ def seed_indicators(db, country_ids: dict):
         (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2013, 63.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής"),
         (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2023, 43.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής"),
 
-        # ============ KOSOVO — ECONOMIC (World Bank API όπου διαθέσιμο) ============
+        # ============ KOSOVO — ECONOMIC ============
         (kosovo_id, "ECONOMIC", "GDP_growth", 2013, 5.34, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)"),
         (kosovo_id, "ECONOMIC", "GDP_growth", 2023, 4.07, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)"),
-        # 1999/2005/2007/2008: ΔΕΝ υπάρχουν στο World Bank API (πριν το 2009) -- σκόπιμα ΔΕΝ εικάζουμε
+        # 1999: δεν υπάρχει στο World Bank API (πριν το 2009) -- σκόπιμα δεν εικάζουμε
+
+        (kosovo_id, "ECONOMIC", "unemployment_rate", 2005, 41.0, "%", "ILO/World Bank Open Data, Γράφημα 1.5 διπλωματικής"),
+        (kosovo_id, "ECONOMIC", "unemployment_rate", 2007, 46.0, "%", "ILO/World Bank Open Data, Γράφημα 1.5 διπλωματικής"),
+        (kosovo_id, "ECONOMIC", "unemployment_rate", 2008, 48.0, "%", "ILO/World Bank Open Data, Γράφημα 1.5 διπλωματικής"),
+
+        (kosovo_id, "ECONOMIC", "trade_share_eu", 2018, 35.8, "%", "Council of the European Union 2018, Γράφημα 1.7 διπλωματικής (μέσος όρος εισαγωγών 44.7% / εξαγωγών 26.9%)"),
 
         # ============ KOSOVO — MILITARY (τεκμηριωμένη εκτίμηση) ============
-        # Δεν υπάρχει δεδομένο κρατικών στρατιωτικών δαπανών Κοσόβου στο WB API.
-        # Εναλλακτικά, δείκτης έντασης ξένης στρατιωτικής παρουσίας (KFOR/NATO),
-        # βάσει του αφηγηματικού κειμένου της διπλωματικής (§ NATO intervention,
-        # KFOR mandate). 0-100, όπου 100 = μέγιστη ένταση/παρουσία.
         (kosovo_id, "MILITARY", "troop_presence_index", 1999, 90.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική"),
         (kosovo_id, "MILITARY", "troop_presence_index", 2005, 55.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική"),
         (kosovo_id, "MILITARY", "troop_presence_index", 2007, 45.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική"),
@@ -99,11 +105,7 @@ def seed_indicators(db, country_ids: dict):
         (kosovo_id, "MILITARY", "troop_presence_index", 2013, 25.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική"),
         (kosovo_id, "MILITARY", "troop_presence_index", 2023, 15.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική"),
 
-        # ============ KOSOVO — SOCIAL (Γράφημα 1.5 για ανεργία, Γράφημα 1.11 για FH) ============
-        # ΣΗΜΕΙΩΣΗ: χρησιμοποιούμε freedom_house_score (0-100) ως τον social δείκτη,
-        # συνεπές με τη Σερβία -- η ανεργία Κοσόβου (Γράφημα 1.5) υπάρχει σαν επιπλέον
-        # πληροφορία αλλά ΔΕΝ μπαίνει εδώ γιατί δεν έχουμε NORMALIZATION_RANGES γι'
-        # αυτήν ακόμα (θα προστεθεί αν χρειαστεί αργότερα).
+        # ============ KOSOVO — SOCIAL (Γράφημα 1.11 διπλωματικής) ============
         (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2005, 28.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής"),
         (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2007, 29.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής"),
         (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2008, 30.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής"),
