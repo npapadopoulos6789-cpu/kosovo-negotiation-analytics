@@ -141,7 +141,7 @@ def calculate_window_score(
     return round(window_score, 2)
 
 
-KEY_YEARS = [1999, 2005, 2007, 2008, 2013, 2023]
+KEY_YEARS = [1998, 1999, 2000, 2005, 2007, 2008, 2013, 2018, 2020, 2023]
 
 
 def find_optimal_agreement_period(db: Session, country_id: int) -> dict | None:

@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.indicator import IndicatorCategory
+from app.models.indicator import IndicatorCategory, IndicatorConfidence
 
 
 class IndicatorBase(BaseModel):
@@ -14,6 +14,7 @@ class IndicatorBase(BaseModel):
     unit: Optional[str] = Field(None, max_length=20)
     source: Optional[str] = Field(None, max_length=200)
     is_verified: bool = True
+    confidence: Optional[IndicatorConfidence] = None
 
 
 class IndicatorCreate(IndicatorBase):
@@ -30,6 +31,7 @@ class IndicatorUpdate(BaseModel):
     unit: Optional[str] = Field(None, max_length=20)
     source: Optional[str] = Field(None, max_length=200)
     is_verified: Optional[bool] = None
+    confidence: Optional[IndicatorConfidence] = None
 
 
 class IndicatorRead(IndicatorBase):

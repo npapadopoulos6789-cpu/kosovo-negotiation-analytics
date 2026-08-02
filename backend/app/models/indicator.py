@@ -10,6 +10,12 @@ class IndicatorCategory(str, enum.Enum):
     SOCIAL_UNREST = "SOCIAL_UNREST"
 
 
+class IndicatorConfidence(str, enum.Enum):
+    EXACT = "EXACT"              # ρητά αναφερόμενο στο κείμενο της πηγής
+    CHART_READ = "CHART_READ"    # διαβασμένο από άξονα γραφήματος
+    RANGE = "RANGE"               # η πηγή έδωσε εύρος, αποθηκεύσαμε μέσο όρο
+
+
 class Indicator(Base):
     __tablename__ = "indicators"
 
@@ -39,3 +45,8 @@ class Indicator(Base):
 
     # Αν το δεδομένο έχει επιβεβαιωθεί χειροκίνητα (seed data της διπλωματικής = True)
     is_verified = Column(Boolean, nullable=False, default=True)
+
+    # nullable=True: όχι κάθε εγγραφή έχει νόημα να ταξινομηθεί ως EXACT/CHART_READ/
+    # RANGE (π.χ. researcher estimates όπως το troop_presence_index δεν είναι
+    # "διάβασμα πηγής"), οπότε δεν το κάνουμε υποχρεωτικό στο επίπεδο ΒΔ
+    confidence = Column(Enum(IndicatorConfidence), nullable=True)

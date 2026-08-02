@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Text, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, Text, Enum, ForeignKey, Float
 from sqlalchemy.orm import relationship
 import enum
 
@@ -54,6 +54,13 @@ class NegotiationEvent(Base):
     economic_weight = Column(Integer, nullable=False, default=4)
     military_weight = Column(Integer, nullable=False, default=4)
     social_weight = Column(Integer, nullable=False, default=2)
+
+    # 0.0-1.0, πόσο εφαρμόστηκε στην πράξη η συμφωνία -- ερευνητική βαθμολόγηση
+    # τεκμηριωμένη από το Κεφ. 3 της διπλωματικής (βλ. SEED_DATA_SPEC.md §4.4).
+    # nullable=True: άγνωστο/άσχετο για events που δεν κατέληξαν σε συμφωνία.
+    # Το εύρος 0.0-1.0 ΔΕΝ επιβάλλεται στη ΒΔ (ίδιο πρότυπο με τα weights) --
+    # θα ελεγχθεί στο service layer αν/όταν χρειαστεί.
+    implementation_success = Column(Float, nullable=True)
 
     # cascade="all, delete-orphan": αν διαγράψουμε ένα event, διαγράφονται
     # αυτόματα και όλοι οι participants του -- δεν μένουν "ορφανές" γραμμές

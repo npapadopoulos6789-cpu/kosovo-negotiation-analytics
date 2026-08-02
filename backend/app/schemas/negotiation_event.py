@@ -45,6 +45,8 @@ class NegotiationEventBase(BaseModel):
     military_weight: int = 4
     social_weight: int = 2
 
+    implementation_success: Optional[float] = None
+
 
 class NegotiationEventCreate(NegotiationEventBase):
     # Μια ΛΙΣΤΑ από participants, μέσα στο ίδιο request -- π.χ.
@@ -68,6 +70,7 @@ class NegotiationEventUpdate(BaseModel):
     economic_weight: Optional[int] = None
     military_weight: Optional[int] = None
     social_weight: Optional[int] = None
+    implementation_success: Optional[float] = None
     # Αν σταλεί, ΑΝΤΙΚΑΘΙΣΤΑ όλη τη λίστα participants (απλούστερο από
     # partial add/remove -- το documentάρουμε ρητά στο README αργότερα)
     participants: Optional[list[ParticipantCreate]] = None
