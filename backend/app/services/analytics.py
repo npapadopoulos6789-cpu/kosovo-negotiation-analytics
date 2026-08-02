@@ -223,8 +223,7 @@ def find_best_moments(db: Session, serbia_id: int, kosovo_id: int) -> list[dict]
             or (event.zopa_size is not None and event.zopa_size.value == "WIDE")
         )
 
-        idx = KEY_YEARS.index(year)
-        prev = KEY_YEARS[idx - 1] if idx > 0 else None
+        prev = _most_recent_year_with_data(db, serbia_id, kosovo_id, year)
         window_score = calculate_window_score(db, serbia_id, kosovo_id, year, prev)
         quantitative_positive = (
             window_score is not None and window_score >= BEST_MOMENT_THRESHOLD

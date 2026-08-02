@@ -269,6 +269,10 @@ def test_find_best_moments_high_confidence_when_both_agree(monkeypatch):
         make_fake_event(1, "Brussels Agreement", date(2013, 4, 19), ripeness_status="RIPE", zopa_size="WIDE"),
     ]
     monkeypatch.setattr(analytics_service.event_repository, "get_all", lambda db: fake_events)
+    # calculate_power_index χρειάζεται mock εδώ επειδή το find_best_moments
+    # το καλεί εσωτερικά (μέσω _most_recent_year_with_data) για να βρει
+    # ένα σωστό previous_year -- η τιμή δεν έχει σημασία σε αυτό το test
+    monkeypatch.setattr(analytics_service, "calculate_power_index", lambda db, c, y: 50.0)
     monkeypatch.setattr(
         analytics_service, "calculate_window_score", lambda db, s, k, y, py=None: 82.3
     )
@@ -285,6 +289,7 @@ def test_find_best_moments_low_confidence_when_neither_agree(monkeypatch):
         make_fake_event(1, "Rambouillet Talks", date(1999, 2, 6), ripeness_status="NOT_RIPE", zopa_size="NARROW"),
     ]
     monkeypatch.setattr(analytics_service.event_repository, "get_all", lambda db: fake_events)
+    monkeypatch.setattr(analytics_service, "calculate_power_index", lambda db, c, y: 50.0)
     monkeypatch.setattr(
         analytics_service, "calculate_window_score", lambda db, s, k, y, py=None: 30.0
     )
