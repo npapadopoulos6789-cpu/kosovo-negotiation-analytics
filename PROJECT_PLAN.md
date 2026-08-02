@@ -3,38 +3,48 @@
 Agent-facing χρονοδιάγραμμα/roadmap. Για το domain model, τους κανόνες και τις
 συμβάσεις δες [CLAUDE.md](CLAUDE.md) — αυτό εδώ είναι μόνο "πού είμαστε / τι ακολουθεί".
 
-**Ενημερώθηκε:** 2026-07-17 · **Branch:** `main` · **Τελευταία αλλαγή:**
-ολοκληρώθηκε το Country vertical slice (repository/service/schema/router/tests)
+**Ενημερώθηκε:** 2026-08-02 · **Branch:** `main` · **Τελευταία αλλαγή:**
+seed.py αντικαταστάθηκε με πραγματικά δεδομένα (World Bank API + διπλωματική),
+analytics core ολοκληρώθηκε
+
+**⚠️ Αυτό το αρχείο είναι το αρχικό roadmap, όχι το ζωντανό status. Για το
+ακριβές "πού βρισκόμαστε τώρα" δες το [PROJECT_STATUS.md](PROJECT_STATUS.md),
+που ενημερώνεται κάθε session — αυτό εδώ ενημερώνεται μόνο σε milestones.**
 
 ---
 
 ## Status snapshot
 
-Το Country slice έκλεισε πλήρως — είναι πλέον το πρότυπο pattern για τα επόμενα.
+Όλα τα vertical slices του roadmap έχουν κλείσει εκτός από το frontend (#8).
 
 | Κομμάτι | Κατάσταση |
 |---|---|
 | FastAPI app (skeleton, `GET /` health) | ✅ |
 | DB connection (`Base`, `get_db()`) | ✅ |
 | PostgreSQL via Docker Compose | ✅ |
-| Alembic init + 1η migration (`countries` table) | ✅ |
-| **`Country` slice (model/repo/service/schema/router/tests)** | ✅ **ολοκληρώθηκε** |
-| `requirements.txt` + `pytest.ini` (δεν υπήρχαν καθόλου, προστέθηκαν) | ✅ |
-| Indicator, NegotiationEvent, NegotiationAnalysis, User (models) | ❌ |
-| Business rules (weights sum, Power Index, Power Gap, Window Score, Optimal Periods) | ❌ |
-| LLM integration (`/synthesis`, ανά-event analysis) | ❌ |
-| Auth (JWT, ρόλοι ADMIN/VIEWER) | ❌ — write endpoints του `/countries` είναι προς το παρόν ανοιχτά, θα γίνουν ADMIN-only στο slice 2 |
-| Seed script (δεδομένα διπλωματικής) | ❌ |
-| Tests (unit/integration) | ✅ 19 tests (11 unit + 8 integration) για το Country slice · 0 για τα υπόλοιπα |
+| Alembic — 5 migrations, όλες εφαρμοσμένες | ✅ |
+| **`Country` slice** | ✅ ολοκληρώθηκε |
+| **`User` + JWT auth (`require_admin` σε όλα τα write endpoints)** | ✅ ολοκληρώθηκε |
+| **`Indicator` slice** | ✅ ολοκληρώθηκε |
+| **Business rules / analytics core** (Power Index, Power Gap, Window Score,
+  Optimal Agreement/Mutual Compromise Period, Best Moments) | ✅ ολοκληρώθηκε,
+  22 unit tests |
+| **`NegotiationEvent` (+ `event_participants`)** | ✅ ολοκληρώθηκε |
+| **`NegotiationAnalysis`** | ⚠️ CRUD σκελετός έτοιμος, LLM call ΔΕΝ έχει
+  υλοποιηθεί ακόμα (`llm_answer`/`model_used` μένουν `NULL`) |
+| **Seed script** | ✅ πραγματικά δεδομένα (World Bank API + διπλωματική) — αλλά
+  δεν καλύπτει ακόμα όλο το `SEED_DATA_SPEC.md` (λείπουν 3 events, 2 προτεινόμενα
+  πεδία, τα P1-P5 validation tests) |
+| `requirements.txt` + `pytest.ini` | ✅ (διορθώθηκε 2026-08-02: έλειπαν
+  `bcrypt`/`python-jose`/`email-validator`) |
+| Tests (unit/integration) | ✅ **73 passed** — αλλά κενά coverage: όχι unit
+  test για User service, όχι integration tests για negotiation-analyses/analytics |
+| Docker Compose πλήρες stack (api + frontend services) | ❌ — μόνο `db` υπάρχει |
+| README.md (ο άνθρωπος-αναγνώστης) | ❌ — δεν έχει γραφτεί ακόμα |
 | Frontend (React dashboard) | ❌ — δεν υπάρχει καν ο φάκελος |
 
-**Σημείωση υποδομής:** δεν υπήρχε κανένα εγκατεστημένο Python περιβάλλον (ούτε
-`requirements.txt`) όταν ξεκίνησε αυτό το slice. Εγκαταστάθηκαν
-fastapi/uvicorn/sqlalchemy/psycopg2-binary/python-dotenv/alembic/pytest/httpx σε
-Python 3.14 και καταγράφηκαν στο νέο `backend/requirements.txt`. Τα integration
-tests τρέχουν με SQLite in-memory (όχι το πραγματικό Postgres — δεν ήταν
-διαθέσιμο docker σε αυτό το session), οπότε δεν έχουν επιβεβαιωθεί έναντι
-πραγματικού Postgres ακόμα.
+Λεπτομέρειες/ανοιχτά ζητήματα (World Bank data sourcing vs ΧΡΥΣΟ ΚΑΝΟΝΑ, analytics
+router pattern deviation) στο [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 ## ✅ Αποφασισμένα (πρώην ασυνέπειες, ενημερώθηκε το CLAUDE.md)
 
@@ -62,37 +72,39 @@ Domain exceptions → HTTP status μέσω `@app.exception_handler` στο `main
 `get_current_user`/`require_admin` dependencies. **Αυτό είναι το πρότυπο
 pattern για όλα τα επόμενα slices.**
 
-### 2. User + Auth
+### 2. User + Auth ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ
 `User` model (email, hashed_password, role) → JWT login/register →
-`get_current_user` / `require_admin` dependencies. Χρειάζεται πριν μπουν
-role-gated endpoints (Indicator verify, NegotiationEvent write).
+`get_current_user` / `require_admin` dependencies, εφαρμοσμένα σε όλα τα
+write endpoints (Country/Indicator/NegotiationEvent).
 
-### 3. Indicator
+### 3. Indicator ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ
 Model (country_id FK, category enum, indicator_type, year, value, unit, source,
-is_verified) → CRUD slice → endpoint verify (ADMIN-only, `is_verified` toggle).
+is_verified) → CRUD slice. Το "verify" γίνεται μέσω του γενικού
+`PUT /indicators/{id}` (ήδη ADMIN-only), όχι ξεχωριστό endpoint.
 
-### 4. Power Index / Power Gap / Window Score / Optimal Periods (service layer)
-Καθαρά ντετερμινιστικός υπολογιστικός πυρήνας πάνω σε Indicators — ΟΧΙ LLM,
-ΟΧΙ νέο entity/table. Weights: Economic 40% / Military 40% / Social 20%.
-Πρώτα unit tests με γνωστά inputs/outputs + edge cases (λείπουν indicators,
-ένα μόνο έτος, μηδενικές τιμές), μετά endpoint(s) που τα εκθέτουν.
+### 4. Power Index / Power Gap / Window Score / Optimal Periods ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ
+`app/services/analytics.py`, καθαρά ντετερμινιστικό, ΧΩΡΙΣ LLM. Weights:
+Economic 40% / Military 40% / Social 20%. 22 unit tests με mocked repositories.
+Επιπλέον `find_best_moments` (confidence HIGH/MEDIUM/LOW) πέρα από το αρχικό σχέδιο.
 
-### 5. NegotiationEvent (+ event_participants)
+### 5. NegotiationEvent (+ event_participants) ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ
 Model με τα ZOPA/ripeness/BATNA/red lines πεδία + association table
-(event_id, country_id, role) διαχειρίζεται μέσα από το event schema, όχι
-ξεχωριστό endpoint. Business rule στο service:
-`economic_weight + military_weight + social_weight == 10` → 422 αν παραβιάζεται.
+(event_id, country_id, role) διαχειρίζεται μέσα από το event schema. Business
+rule: `economic_weight + military_weight + social_weight == 10` → 422.
 
-### 6. NegotiationAnalysis + LLM integration
-Model (nullable `negotiation_event_id`, `is_synthesis`) → LLM service
-(`temperature=0`, JSON response, context = μόνο δομημένα πεδία event +
-Indicators ±1-2 έτη + Power Index/Gap/Window Score/Optimal Periods +
-participants) → `POST /events/{id}/analysis` και `POST /synthesis`.
+### 6. NegotiationAnalysis + LLM integration ⚠️ ΜΙΣΟΤΕΛΕΙΩΜΕΝΟ
+Model + CRUD slice (GET/POST) έτοιμα. **Η πραγματική LLM κλήση ΔΕΝ έχει γραφτεί
+ακόμα** — `POST /negotiation-analyses` αποθηκεύει το ερώτημα με `llm_answer=NULL`.
+Μένει: LLM service (`temperature=0`, JSON response, context = μόνο δομημένα
+πεδία event + Indicators ±1-2 έτη + Power Index/Gap/Window Score/Optimal Periods
++ participants) και το `POST /synthesis` endpoint.
 
-### 7. Seed script
-`python -m app.scripts.seed` — δεδομένα διπλωματικής, `is_verified=true`.
-Μπαίνει μόλις υπάρχουν Country + Indicator + NegotiationEvent slices, ώστε να
-γίνεται end-to-end δοκιμή με πραγματικά δεδομένα πριν το frontend.
+### 7. Seed script ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ (μερικώς πέρα από το αρχικό σχέδιο)
+`python -m app.scripts.seed` — 9 countries/actors, 44 indicators (πραγματικές
+τιμές World Bank API + Freedom House chart), 7 negotiation events. Το πλήρες
+σχέδιο (`SEED_DATA_SPEC.md`) προβλέπει 10 events + 2 νέα πεδία
+(`confidence`, `implementation_success`) + validation tests έναντι των
+συμπερασμάτων της διπλωματικής — αυτά μένουν, βλ. PROJECT_STATUS.md.
 
 ### 8. Frontend (React dashboard)
 Ξεκινάει αφού το API έχει τουλάχιστον Country + Indicator + NegotiationEvent +

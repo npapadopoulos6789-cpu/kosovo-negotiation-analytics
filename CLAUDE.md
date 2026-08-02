@@ -21,6 +21,29 @@ FastAPI REST API + React dashboard που μετατρέπει τα ευρήμα
 Το LLM δεν είναι ΠΟΤΕ πηγή νέων γεγονότων/αριθμών. Αν σου ζητηθεί να βάλεις το LLM να
 "βρει" ή να "συμπληρώσει" δεδομένα, αρνήσου και πρότεινε seed data ή χειροκίνητη εισαγωγή.
 
+### Data Sources (τι όντως τρέχει σήμερα στο `seed.py`)
+
+**ΔΕΝ υπάρχει live API-fetching κώδικας πουθενά στο repo** (κανένα `import requests`,
+καμία κλήση σε worldbank.org). Το `backend/app/scripts/seed.py` περιέχει
+**χειροκίνητα καταγεγραμμένες, πραγματικές ιστορικές τιμές**, με το εξής μείγμα πηγών
+ανά δείκτη (τεκμηριωμένο στα σχόλια πηγής κάθε εγγραφής — βλ. και `SEED_DATA_SPEC.md`):
+
+- Serbia `GDP_growth`, `unemployment_rate`, `military_expenditure_pct_gdp` — πραγματικές
+  δημοσιευμένες τιμές του World Bank Open Data API (κωδικοί δεικτών NY.GDP.MKTP.KD.ZG,
+  SL.UEM.TOTL.ZS, MS.MIL.XPND.GD.ZS — το τελευταίο πηγή SIPRI), **όχι από τη διπλωματική**
+- Serbia/Kosovo `freedom_house_score` — Γράφημα 1.11 της διπλωματικής
+- Kosovo `unemployment_rate` (2005-2008) — Γράφημα 1.5 της διπλωματικής (ILO/World Bank)
+- Kosovo `trade_share_eu` — Γράφημα 1.7 της διπλωματικής
+- Kosovo `troop_presence_index` — researcher estimate βάσει του αφηγηματικού κειμένου
+  της διπλωματικής (KFOR/NATO), όχι πρωτογενής αριθμός
+
+**Ανοιχτό ζήτημα ως προς τον ΧΡΥΣΟ ΚΑΝΟΝΑ:** τα World Bank/SIPRI-sourced indicators
+είναι `is_verified=true` παρόλο που δεν προέρχονται από τη διπλωματική — ο πίνακας
+παραπάνω μιλάει μόνο για "αυτόματα auto-fetched, is_verified=false" εξωτερικά δεδομένα.
+Αυτά εδώ μπήκαν χειροκίνητα (seed), όχι αυτόματα, αλλά η ΠΗΓΗ τους δεν είναι η
+διπλωματική. Χρειάζεται ρητή απόφαση αν αυτό είναι αποδεκτό ή αν πρέπει να μπουν με
+`is_verified=false` + σχόλιο.
+
 ## Domain Model — 5 entities, όχι περισσότερα
 
 ### Country (καλύπτει και τους διεθνείς δρώντες)
@@ -36,7 +59,10 @@ FastAPI REST API + React dashboard που μετατρέπει τα ευρήμα
 
 ### Indicator
 - `id`, `country_id` (FK), `category`: enum `ECONOMIC | MILITARY | SOCIAL_UNREST`
-- `indicator_type` (π.χ. GDP_growth, unemployment_rate, troop_presence, freedom_house_score)
+- `indicator_type` (οι 6 τιμές που όντως χρησιμοποιούνται σήμερα: `GDP_growth`,
+  `unemployment_rate`, `trade_share_eu`, `military_expenditure_pct_gdp`,
+  `freedom_house_score`, `troop_presence_index` — βλ. `NORMALIZATION_RANGES` στο
+  `services/analytics.py`, πρέπει να μείνουν συγχρονισμένα)
 - `year`, `value`, `unit`, `source`, `is_verified`: bool
 
 ### NegotiationEvent
@@ -77,10 +103,22 @@ FastAPI REST API + React dashboard που μετατρέπει τα ευρήμα
 4. **Negotiation Window Score** (0–100) ανά περίοδο: 50% συμμετρία ισχύος + 30%
    αμοιβαία πτωτική τάση + 20% κοινωνική πίεση. Ντετερμινιστικό, testable.
 5. **Optimal Agreement Period** ανά χώρα: το έτος με το τοπικό μέγιστο Power Index
-   της χώρας (στιγμή μέγιστης μοχλευτικής δύναμης).
+   της χώρας (στιγμή μέγιστης μοχλευτικής δύναμης). Υλοποίηση: ψάχνει μόνο μέσα στα
+   `KEY_YEARS = [1999, 2005, 2007, 2008, 2013, 2023]` του `services/analytics.py`
+   (τα έτη όπου όντως υπάρχουν indicators seeded), όχι σε όλο το εύρος ετών.
 6. **Optimal Mutual Compromise Period**: το έτος με το μέγιστο Window Score (Zartman
-   mutually hurting stalemate).
+   mutually hurting stalemate), ίδιος περιορισμός στα `KEY_YEARS`.
+6b. **Best Moments** (`find_best_moments`): συγκλίνουσα εγκυρότητα (convergent
+   validity) — συγκρίνει την ΠΟΙΟΤΙΚΗ κρίση κάθε event (`ripeness_status == RIPE`
+   ή `zopa_size == WIDE`, από το seed data) με το ΠΟΣΟΤΙΚΟ Window Score
+   (κατώφλι `BEST_MOMENT_THRESHOLD = 60.0`). Επιστρέφει confidence
+   `HIGH` (συμφωνούν) / `MEDIUM` (συμφωνεί μόνο η μία πηγή) / `LOW` (καμία).
+   Δεν είναι απόδειξη — είναι έλεγχος συνέπειας ανάμεσα σε ανεξάρτητη ποιοτική
+   και ποσοτική ανάλυση.
 7. Roles: ADMIN = πλήρες CRUD + verify indicators. VIEWER = read + αίτηση LLM analyses.
+   Σήμερα το "verify" γίνεται μέσω του γενικού `PUT /indicators/{id}` (το
+   `IndicatorUpdate` schema περιλαμβάνει `is_verified`), όχι ξεχωριστό endpoint —
+   κι αυτό είναι ήδη πίσω από `require_admin`.
 
 ## LLM integration — κανόνες prompt
 
@@ -115,7 +153,7 @@ pytest -x -q
 python -m app.scripts.seed                # δεδομένα διπλωματικής (is_verified=true)
 
 # Frontend
-cd frontend && npm run dev                # :5173
+cd frontend && npm run dev                # :5173 -- ΔΕΝ υπάρχει ακόμα ο φάκελος
 ```
 
 ## Συμβάσεις
@@ -144,4 +182,7 @@ cd frontend && npm run dev                # :5173
 
 Ο developer μαθαίνει βήμα-βήμα. Όταν υλοποιείς κάτι: εξήγησε σύντομα ΓΙΑΤΙ (ποιο pattern,
 ποιο στρώμα, ποιος κανόνας), προτίμησε το απλό από το έξυπνο, και δείξε πώς το νέο κομμάτι
-ακολουθεί το υπάρχον Country slice ως πρότυπο. Το χρονοδιάγραμμα είναι στο PROJECT_PLAN.md.
+ακολουθεί το υπάρχον Country slice ως πρότυπο. Το τρέχον "πού βρισκόμαστε" είναι στο
+PROJECT_STATUS.md (ενημερώνεται κάθε session) — το PROJECT_PLAN.md είναι το αρχικό
+roadmap (ολοκληρωμένο πλέον εκτός frontend), κράτα το ενημερωμένο μόνο σε επίπεδο
+milestones, όχι session-by-session λεπτομέρειας.
