@@ -70,10 +70,6 @@ def calculate_power_index(db: Session, country_id: int, year: int) -> float | No
 def calculate_power_gap(
     db: Session, serbia_id: int, kosovo_id: int, year: int
 ) -> float | None:
-    """
-    |Power Index Σερβίας - Power Index Κοσόβου| σε ένα έτος.
-    None αν λείπει το Power Index οποιασδήποτε από τις δύο χώρες.
-    """
     serbia_pi = calculate_power_index(db, serbia_id, year)
     kosovo_pi = calculate_power_index(db, kosovo_id, year)
 
@@ -81,3 +77,78 @@ def calculate_power_gap(
         return None
 
     return round(abs(serbia_pi - kosovo_pi), 2)
+
+
+def calculate_trend_score(
+    current_serbia: float, previous_serbia: float,
+    current_kosovo: float, previous_kosovo: float,
+) -> float:
+    """
+    Μετράει πόσο "αμοιβαία πτωτική" ήταν η τάση ισχύος -- κατά Zartman,
+    ένδειξη "mutually hurting stalemate". Μόνο η ΘΕΤΙΚΗ πτώση μετράει.
+    Μια πτώση 30 μονάδων θεωρείται η μέγιστη ένταση -- παραδοχή,
+    τεκμηριωμένη στο README.
+    """
+    serbia_decline = max(0.0, previous_serbia - current_serbia)
+    kosovo_decline = max(0.0, previous_kosovo - current_kosovo)
+    avg_decline = (serbia_decline + kosovo_decline) / 2
+    return round(min(100.0, avg_decline / 30 * 100), 2)
+
+
+def calculate_social_pressure_score(
+    db: Session, serbia_id: int, kosovo_id: int, year: int
+) -> float | None:
+    """
+    Όσο χαμηλότερη η κοινωνική σταθερότητα και των δύο πλευρών, τόσο
+    υψηλότερη η "πίεση" προς συμφωνία.
+    """
+    serbia_social = get_category_score(db, serbia_id, year, "SOCIAL_UNREST")
+    kosovo_social = get_category_score(db, kosovo_id, year, "SOCIAL_UNREST")
+
+    if serbia_social is None or kosovo_social is None:
+        return None
+
+    avg_stability = (serbia_social + kosovo_social) / 2
+    return round(100 - avg_stability, 2)
+
+
+def calculate_window_score(
+    db: Session,
+    serbia_id: int,
+    kosovo_id: int,
+    year: int,
+    previous_year: int | None = None,
+) -> float | None:
+    """
+    Negotiation Window Score (0-100): 50% συμμετρία ισχύος +
+    30% αμοιβαία πτωτική τάση + 20% κοινωνική πίεση.
+    Το previous_year είναι προαιρετικό -- αν δεν δοθεί, η "τάση"
+    θεωρείται ουδέτερη (0), ρητά τεκμηριωμένη παραδοχή.
+    """
+    gap = calculate_power_gap(db, serbia_id, kosovo_id, year)
+    if gap is None:
+        return None
+    symmetry_score = round(100 - gap, 2)
+
+    trend_score = 0.0
+    if previous_year is not None:
+        current_serbia = calculate_power_index(db, serbia_id, year)
+        previous_serbia = calculate_power_index(db, serbia_id, previous_year)
+        current_kosovo = calculate_power_index(db, kosovo_id, year)
+        previous_kosovo = calculate_power_index(db, kosovo_id, previous_year)
+
+        if None not in (current_serbia, previous_serbia, current_kosovo, previous_kosovo):
+            trend_score = calculate_trend_score(
+                current_serbia, previous_serbia, current_kosovo, previous_kosovo
+            )
+
+    social_pressure = calculate_social_pressure_score(db, serbia_id, kosovo_id, year)
+    if social_pressure is None:
+        return None
+
+    window_score = (
+        symmetry_score * 0.50
+        + trend_score * 0.30
+        + social_pressure * 0.20
+    )
+    return round(window_score, 2)

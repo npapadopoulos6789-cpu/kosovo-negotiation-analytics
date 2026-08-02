@@ -106,3 +106,48 @@ def test_calculate_power_gap_returns_none_if_missing_data(monkeypatch):
     result = analytics_service.calculate_power_gap(db=None, serbia_id=1, kosovo_id=2, year=2013)
 
     assert result is None
+
+
+def test_calculate_trend_score_both_declining():
+    # Serbia: 70 -> 50 (πτώση 20), Kosovo: 60 -> 45 (πτώση 15)
+    # avg_decline = 17.5, / 30 * 100 = 58.33
+    result = analytics_service.calculate_trend_score(
+        current_serbia=50.0, previous_serbia=70.0,
+        current_kosovo=45.0, previous_kosovo=60.0,
+    )
+    assert result == 58.33
+
+
+def test_calculate_trend_score_ignores_increase():
+    # Serbia ΑΥΞΗΘΗΚΕ (δεν μετράει ως "decline", γίνεται 0)
+    # Kosovo έπεσε 10 -> avg_decline = 5, /30*100 = 16.67
+    result = analytics_service.calculate_trend_score(
+        current_serbia=80.0, previous_serbia=70.0,
+        current_kosovo=50.0, previous_kosovo=60.0,
+    )
+    assert result == 16.67
+
+
+def test_calculate_window_score_without_previous_year(monkeypatch):
+    monkeypatch.setattr(analytics_service, "calculate_power_gap", lambda db, s, k, y: 20.0)
+    monkeypatch.setattr(
+        analytics_service, "calculate_social_pressure_score", lambda db, s, k, y: 60.0
+    )
+
+    result = analytics_service.calculate_window_score(
+        db=None, serbia_id=1, kosovo_id=2, year=2013, previous_year=None
+    )
+
+    # symmetry = 100-20=80, trend=0 (no previous_year), social=60
+    # 80*0.5 + 0*0.3 + 60*0.2 = 40 + 0 + 12 = 52
+    assert result == 52.0
+
+
+def test_calculate_window_score_returns_none_if_gap_missing(monkeypatch):
+    monkeypatch.setattr(analytics_service, "calculate_power_gap", lambda db, s, k, y: None)
+
+    result = analytics_service.calculate_window_score(
+        db=None, serbia_id=1, kosovo_id=2, year=2013
+    )
+
+    assert result is None
