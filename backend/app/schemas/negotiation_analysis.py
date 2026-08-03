@@ -16,6 +16,12 @@ class NegotiationAnalysisCreate(BaseModel):
     user_question: str
 
 
+class SynthesisCreate(BaseModel):
+    """Ό,τι στέλνει ο χρήστης στο POST /synthesis -- πάντα synthesis,
+    άρα δεν χρειάζεται καν πεδίο negotiation_event_id."""
+    user_question: str
+
+
 class NegotiationAnalysisRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

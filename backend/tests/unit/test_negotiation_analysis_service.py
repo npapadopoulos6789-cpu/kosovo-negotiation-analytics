@@ -5,6 +5,7 @@ from app.models.negotiation_event import NegotiationEvent
 from app.models.negotiation_analysis import NegotiationAnalysis
 from app.schemas.negotiation_analysis import NegotiationAnalysisCreate
 from app.services import negotiation_analysis as analysis_service
+from app.services.llm_client import LLMCallError
 from app.services.negotiation_analysis import (
     NegotiationAnalysisNotFoundError, EventForAnalysisNotFoundError
 )
@@ -38,6 +39,56 @@ class FakeEventRepository:
     def get_by_id(self, db, event_id):
         return self._events.get(event_id)
 
+    def get_all(self, db):
+        return list(self._events.values())
+
+
+class FakeCountry:
+    def __init__(self, id):
+        self.id = id
+
+
+class FakeCountryRepository:
+    def get_by_name(self, db, name):
+        return FakeCountry(1) if name == "Serbia" else FakeCountry(2)
+
+
+class FakeIndicatorRepository:
+    def get_by_country(self, db, country_id):
+        return []
+
+
+class FakeAnalyticsService:
+    """
+    Stub του analytics_service -- οι τιμές δεν χρειάζεται να είναι σωστές
+    αριθμητικά, μόνο δομικά σωστές (ώστε το context building να τρέξει
+    χωρίς σφάλμα). Η ορθότητα του πραγματικού analytics πυρήνα ελέγχεται
+    ήδη στο test_analytics_service.py/test_validation_targets.py -- αυτό
+    το test file ελέγχει ΜΟΝΟ τη λογική του negotiation_analysis service.
+    """
+    KEY_YEARS = [1999, 2013, 2023]
+
+    def calculate_power_index(self, db, country_id, year):
+        return 50.0
+
+    def calculate_power_gap(self, db, serbia_id, kosovo_id, year):
+        return 5.0
+
+    def calculate_window_score(self, db, serbia_id, kosovo_id, year, previous_year):
+        return 60.0
+
+    def _most_recent_year_with_data(self, db, serbia_id, kosovo_id, year):
+        return None
+
+    def find_optimal_agreement_period(self, db, country_id):
+        return {"year": 2013, "power_index": 50.0}
+
+    def find_optimal_mutual_compromise_period(self, db, serbia_id, kosovo_id):
+        return {"year": 2013, "window_score": 60.0}
+
+    def find_best_moments(self, db, serbia_id, kosovo_id):
+        return []
+
 
 @pytest.fixture()
 def fake_analysis_repo(monkeypatch):
@@ -53,7 +104,37 @@ def fake_event_repo(monkeypatch):
     return repo
 
 
-def test_create_synthesis_analysis_when_no_event_id(fake_analysis_repo, fake_event_repo):
+@pytest.fixture()
+def fake_context_dependencies(monkeypatch):
+    """Μοκάρει ΟΛΑ όσα χρειάζεται το context building (_build_event_context/
+    _build_synthesis_context) εκτός event_repository, που έχει ήδη το δικό
+    του fixture -- country/indicator repos + ο ίδιος ο analytics_service."""
+    monkeypatch.setattr(analysis_service, "country_repository", FakeCountryRepository())
+    monkeypatch.setattr(analysis_service, "indicator_repository", FakeIndicatorRepository())
+    monkeypatch.setattr(analysis_service, "analytics_service", FakeAnalyticsService())
+
+
+FAKE_LLM_RAW_TEXT = '{"answer": "fake answer", "answer_certainty": "HIGH", "data_gaps_noted": []}'
+
+
+@pytest.fixture()
+def fake_llm_call(monkeypatch):
+    """Μοκάρει το πραγματικό Anthropic call -- ΚΑΝΕΝΑ πραγματικό network
+    call δεν πρέπει να γίνεται ποτέ μέσα από pytest. Καταγράφει τα calls
+    ώστε τα tests να επιβεβαιώνουν πόσες φορές (και αν) κλήθηκε."""
+    calls = []
+
+    def fake_call(system_prompt, user_message):
+        calls.append({"system_prompt": system_prompt, "user_message": user_message})
+        return {"raw_text": FAKE_LLM_RAW_TEXT, "model": "fake-model"}
+
+    monkeypatch.setattr(analysis_service.llm_client, "call_llm", fake_call)
+    return calls
+
+
+def test_create_synthesis_analysis_when_no_event_id(
+    fake_analysis_repo, fake_event_repo, fake_context_dependencies, fake_llm_call
+):
     # negotiation_event_id=None -- πρέπει να γίνει is_synthesis=True αυτόματα
     data = NegotiationAnalysisCreate(user_question="Compare all periods")
 
@@ -61,10 +142,14 @@ def test_create_synthesis_analysis_when_no_event_id(fake_analysis_repo, fake_eve
 
     assert created.is_synthesis is True
     assert created.negotiation_event_id is None
-    assert created.llm_answer is None  # δεν έχει απαντηθεί ακόμα
+    assert created.llm_answer == FAKE_LLM_RAW_TEXT
+    assert created.model_used == "fake-model"
+    assert len(fake_llm_call) == 1
 
 
-def test_create_event_specific_analysis(fake_analysis_repo, fake_event_repo):
+def test_create_event_specific_analysis(
+    fake_analysis_repo, fake_event_repo, fake_context_dependencies, fake_llm_call
+):
     fake_event_repo._events[1] = NegotiationEvent(id=1, title="Rambouillet", date=date(1999, 2, 6))
     data = NegotiationAnalysisCreate(negotiation_event_id=1, user_question="Why was ZOPA narrow?")
 
@@ -72,13 +157,35 @@ def test_create_event_specific_analysis(fake_analysis_repo, fake_event_repo):
 
     assert created.is_synthesis is False
     assert created.negotiation_event_id == 1
+    assert created.llm_answer == FAKE_LLM_RAW_TEXT
+    assert len(fake_llm_call) == 1
 
 
-def test_create_analysis_rejects_missing_event(fake_analysis_repo, fake_event_repo):
+def test_create_analysis_rejects_missing_event(fake_analysis_repo, fake_event_repo, fake_llm_call):
     data = NegotiationAnalysisCreate(negotiation_event_id=999, user_question="Why?")
 
     with pytest.raises(EventForAnalysisNotFoundError):
         analysis_service.create_analysis(db=None, data=data)
+
+    # Το event δεν υπάρχει -- δεν πρέπει καν να φτάσουμε στο LLM call
+    assert len(fake_llm_call) == 0
+
+
+def test_create_analysis_does_not_save_when_llm_call_fails(
+    fake_analysis_repo, fake_event_repo, fake_context_dependencies, monkeypatch
+):
+    def failing_call(system_prompt, user_message):
+        raise LLMCallError("boom")
+
+    monkeypatch.setattr(analysis_service.llm_client, "call_llm", failing_call)
+
+    data = NegotiationAnalysisCreate(user_question="Compare all periods")
+
+    with pytest.raises(LLMCallError):
+        analysis_service.create_analysis(db=None, data=data)
+
+    # Καμία μισή/άκυρη εγγραφή δεν πρέπει να αποθηκευτεί
+    assert fake_analysis_repo.get_all(db=None) == []
 
 
 def test_get_analysis_raises_when_missing(fake_analysis_repo, fake_event_repo):
@@ -86,7 +193,9 @@ def test_get_analysis_raises_when_missing(fake_analysis_repo, fake_event_repo):
         analysis_service.get_analysis(db=None, analysis_id=999)
 
 
-def test_list_analyses_by_event_filters_correctly(fake_analysis_repo, fake_event_repo):
+def test_list_analyses_by_event_filters_correctly(
+    fake_analysis_repo, fake_event_repo, fake_context_dependencies, fake_llm_call
+):
     fake_event_repo._events[1] = NegotiationEvent(id=1, title="Event A", date=date(2000, 1, 1))
     fake_event_repo._events[2] = NegotiationEvent(id=2, title="Event B", date=date(2001, 1, 1))
 

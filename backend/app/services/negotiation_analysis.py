@@ -1,9 +1,17 @@
+import json
+
 from sqlalchemy.orm import Session
 
 from app.models.negotiation_analysis import NegotiationAnalysis
+from app.models.negotiation_event import NegotiationEvent
 from app.repositories import negotiation_analysis as analysis_repository
 from app.repositories import negotiation_event as event_repository
+from app.repositories import indicator as indicator_repository
+from app.repositories import country as country_repository
 from app.schemas.negotiation_analysis import NegotiationAnalysisCreate
+from app.services import analytics as analytics_service
+from app.services import llm_client
+from app.services.llm_prompts import SYSTEM_PROMPT_QA, SYSTEM_PROMPT_SYNTHESIS
 
 
 class NegotiationAnalysisNotFoundError(Exception):
@@ -33,23 +41,163 @@ def list_analyses_by_event(db: Session, event_id: int) -> list[NegotiationAnalys
     return analysis_repository.get_by_event(db, event_id)
 
 
+# ---------------------------------------------------------------------------
+# Context building -- ΜΟΝΟ δομημένα δεδομένα, καμία LLM κλήση εδώ
+# ---------------------------------------------------------------------------
+
+def _serialize_event(event: NegotiationEvent) -> dict:
+    return {
+        "id": event.id,
+        "title": event.title,
+        "date": event.date.isoformat(),
+        "description": event.description,
+        "zopa_size": event.zopa_size.value if event.zopa_size else None,
+        "zopa_reasoning": event.zopa_reasoning,
+        "ripeness_status": event.ripeness_status.value if event.ripeness_status else None,
+        "ripeness_reasoning": event.ripeness_reasoning,
+        "batna_side_a": event.batna_side_a,
+        "batna_side_b": event.batna_side_b,
+        "red_lines_side_a": event.red_lines_side_a,
+        "red_lines_side_b": event.red_lines_side_b,
+        "negotiation_type": event.negotiation_type.value if event.negotiation_type else None,
+        "economic_weight": event.economic_weight,
+        "military_weight": event.military_weight,
+        "social_weight": event.social_weight,
+        "implementation_success": event.implementation_success,
+        "participants": [
+            {"country_name": p.country_name, "role": p.role.value}
+            for p in event.participants
+        ],
+    }
+
+
+def _serialize_indicators_by_category(indicators: list) -> dict:
+    grouped: dict[str, list] = {}
+    for ind in indicators:
+        grouped.setdefault(ind.category.value, []).append({
+            "indicator_type": ind.indicator_type,
+            "year": ind.year,
+            "value": ind.value,
+            "unit": ind.unit,
+            "source": ind.source,
+            "is_verified": ind.is_verified,
+            "confidence": ind.confidence.value if ind.confidence else None,
+        })
+    return grouped
+
+
+def _window_score_for_year(db: Session, serbia_id: int, kosovo_id: int, year: int) -> float | None:
+    # Ίδιο auto-compute previous_year pattern με το /analytics/window-score/{year}
+    # (Finding A fix) -- ώστε το context να συμφωνεί με τα analytics endpoints.
+    previous_year = None
+    if year in analytics_service.KEY_YEARS:
+        previous_year = analytics_service._most_recent_year_with_data(
+            db, serbia_id, kosovo_id, year
+        )
+    return analytics_service.calculate_window_score(db, serbia_id, kosovo_id, year, previous_year)
+
+
+def _build_event_context(db: Session, event: NegotiationEvent) -> dict:
+    serbia = country_repository.get_by_name(db, "Serbia")
+    kosovo = country_repository.get_by_name(db, "Kosovo")
+
+    year = event.date.year
+    year_window = range(year - 2, year + 3)
+
+    serbia_indicators = [
+        ind for ind in indicator_repository.get_by_country(db, serbia.id)
+        if ind.year in year_window
+    ]
+    kosovo_indicators = [
+        ind for ind in indicator_repository.get_by_country(db, kosovo.id)
+        if ind.year in year_window
+    ]
+
+    return {
+        "event": _serialize_event(event),
+        "indicators": {
+            "Serbia": _serialize_indicators_by_category(serbia_indicators),
+            "Kosovo": _serialize_indicators_by_category(kosovo_indicators),
+        },
+        "analytics": {
+            "year": year,
+            "power_index_serbia": analytics_service.calculate_power_index(db, serbia.id, year),
+            "power_index_kosovo": analytics_service.calculate_power_index(db, kosovo.id, year),
+            "power_gap": analytics_service.calculate_power_gap(db, serbia.id, kosovo.id, year),
+            "window_score": _window_score_for_year(db, serbia.id, kosovo.id, year),
+            "optimal_agreement_period_serbia": analytics_service.find_optimal_agreement_period(db, serbia.id),
+            "optimal_agreement_period_kosovo": analytics_service.find_optimal_agreement_period(db, kosovo.id),
+            "optimal_mutual_compromise_period": analytics_service.find_optimal_mutual_compromise_period(
+                db, serbia.id, kosovo.id
+            ),
+        },
+    }
+
+
+def _build_synthesis_context(db: Session) -> dict:
+    serbia = country_repository.get_by_name(db, "Serbia")
+    kosovo = country_repository.get_by_name(db, "Kosovo")
+
+    events = event_repository.get_all(db)
+
+    timeline = [
+        {
+            "year": year,
+            "power_index_serbia": analytics_service.calculate_power_index(db, serbia.id, year),
+            "power_index_kosovo": analytics_service.calculate_power_index(db, kosovo.id, year),
+            "power_gap": analytics_service.calculate_power_gap(db, serbia.id, kosovo.id, year),
+            "window_score": _window_score_for_year(db, serbia.id, kosovo.id, year),
+        }
+        for year in analytics_service.KEY_YEARS
+    ]
+
+    return {
+        "events": [_serialize_event(e) for e in events],
+        "timeline": timeline,
+        "optimal_agreement_period_serbia": analytics_service.find_optimal_agreement_period(db, serbia.id),
+        "optimal_agreement_period_kosovo": analytics_service.find_optimal_agreement_period(db, kosovo.id),
+        "optimal_mutual_compromise_period": analytics_service.find_optimal_mutual_compromise_period(
+            db, serbia.id, kosovo.id
+        ),
+        "best_moments": analytics_service.find_best_moments(db, serbia.id, kosovo.id),
+    }
+
+
+def _build_user_message(user_question: str, context: dict) -> str:
+    return (
+        f"ΕΡΩΤΗΣΗ ΧΡΗΣΤΗ: {user_question}\n\n"
+        f"CONTEXT (JSON):\n{json.dumps(context, ensure_ascii=False, indent=2)}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# create_analysis -- Q&A (event-specific) ΚΑΙ synthesis (negotiation_event_id=None)
+# ---------------------------------------------------------------------------
+
 def create_analysis(db: Session, data: NegotiationAnalysisCreate) -> NegotiationAnalysis:
     is_synthesis = data.negotiation_event_id is None
 
-    # Business rule: αν ΔΕΝ είναι synthesis (δηλαδή αναφέρεται σε
-    # συγκεκριμένο event), το event αυτό πρέπει να υπάρχει πραγματικά
-    if not is_synthesis:
-        if event_repository.get_by_id(db, data.negotiation_event_id) is None:
+    if is_synthesis:
+        context = _build_synthesis_context(db)
+        system_prompt = SYSTEM_PROMPT_SYNTHESIS
+    else:
+        event = event_repository.get_by_id(db, data.negotiation_event_id)
+        if event is None:
             raise EventForAnalysisNotFoundError(data.negotiation_event_id)
+        context = _build_event_context(db, event)
+        system_prompt = SYSTEM_PROMPT_QA
 
-    # ΠΡΟΣΩΡΙΝΑ: δεν καλούμε ακόμα το LLM -- απλά αποθηκεύουμε την
-    # ερώτηση, με άδεια απάντηση. Το πραγματικό LLM integration
-    # (system prompt, OpenAI API call) είναι το ΕΠΟΜΕΝΟ, ξεχωριστό βήμα.
+    user_message = _build_user_message(data.user_question, context)
+
+    # Αν αυτό σηκώσει LLMCallError, ΔΕΝ φτάνουμε ποτέ στο analysis_repository.create --
+    # άρα δεν αποθηκεύεται ποτέ μισή/άκυρη εγγραφή (βλ. main.py exception handler).
+    result = llm_client.call_llm(system_prompt, user_message)
+
     analysis = NegotiationAnalysis(
         negotiation_event_id=data.negotiation_event_id,
         is_synthesis=is_synthesis,
         user_question=data.user_question,
-        llm_answer=None,
-        model_used=None,
+        llm_answer=result["raw_text"],
+        model_used=result["model"],
     )
     return analysis_repository.create(db, analysis)

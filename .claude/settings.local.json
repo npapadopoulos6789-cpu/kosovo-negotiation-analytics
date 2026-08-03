@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(\"/c/Users/ΠΟΥΡΙ/kosovo-negotiation-analytics/backend/venv/Scripts/python.exe\" -m pip list)"
+      "Bash(\"/c/Users/ΠΟΥΡΙ/kosovo-negotiation-analytics/backend/venv/Scripts/python.exe\" -m pip list)",
+      "WebFetch(domain:api.worldbank.org)"
     ]
   }
 }

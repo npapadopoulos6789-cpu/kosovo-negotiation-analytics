@@ -1,13 +1,10 @@
-import os
 import bcrypt
 from datetime import datetime, timedelta, timezone
 
-from dotenv import load_dotenv
 from jose import jwt
 
-load_dotenv()
+from app.core.config import JWT_SECRET_KEY as SECRET_KEY
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 

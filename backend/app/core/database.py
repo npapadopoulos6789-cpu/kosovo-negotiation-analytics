@@ -1,12 +1,7 @@
-import os
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-# Φορτώνει τις μεταβλητές από το .env (π.χ. DATABASE_URL)
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL")
+from app.core.config import DATABASE_URL
 
 # Το "engine" ξέρει ΠΩΣ να συνδεθεί με τη ΒΔ
 engine = create_engine(DATABASE_URL)
