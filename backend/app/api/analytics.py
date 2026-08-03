@@ -33,6 +33,10 @@ def get_window_score(
     previous_year: int | None = None,
     db: Session = Depends(get_db),
 ):
+    if previous_year is None and year in analytics_service.KEY_YEARS:
+        previous_year = analytics_service._most_recent_year_with_data(
+            db, serbia_id, kosovo_id, year
+        )
     result = analytics_service.calculate_window_score(db, serbia_id, kosovo_id, year, previous_year)
     if result is None:
         raise HTTPException(status_code=404, detail="Insufficient data")

@@ -16,10 +16,12 @@ multidimensional Power Index (economic+military+social) υπολογίσιμο �
 στο πλησιέστερο διαθέσιμο εύρος -- σημειωμένο ρητά στο docstring κάθε test.
 """
 import pytest
+from fastapi.testclient import TestClient
 
 from app.core.database import SessionLocal
 from app.repositories import country as country_repository
 from app.services import analytics as analytics_service
+from main import app
 
 
 @pytest.fixture(scope="module")
@@ -172,3 +174,40 @@ def test_kosovo_indicator_breakdown_documented(db, kosovo_id):
         2013: {"economic": 84.47, "military": 25.0, "social": 29.5},
         2023: {"economic": 80.23, "military": 15.0, "social": 38.0},
     }
+
+
+# ---------------------------------------------------------------------------
+# Regression -- GET /analytics/window-score/{year} πρέπει να συμφωνεί με τα
+# άλλα δύο analytics endpoints για το ίδιο έτος (Finding A, 2026-08-03)
+# ---------------------------------------------------------------------------
+
+def test_window_score_endpoint_autocomputes_previous_year(serbia_id, kosovo_id):
+    """
+    Μέχρι αυτή τη διόρθωση, το GET /analytics/window-score/{year} απαιτούσε
+    ο caller να δώσει ρητά previous_year -- αν δεν το έδινε, το trend_score
+    (30% του Window Score) μηδενιζόταν αθόρυβα, ίδιο bug pattern με αυτό
+    που διορθώθηκε στο find_optimal_mutual_compromise_period/
+    find_best_moments (βλ. test_2013_is_optimal_window), αλλά η διόρθωση
+    δεν είχε εφαρμοστεί σε αυτό το endpoint. Αποτέλεσμα: το endpoint
+    επέστρεφε 57.34 για το 2013 ενώ το /optimal-mutual-compromise
+    επέστρεφε 61.98 για το ίδιο έτος.
+
+    Μετά τη διόρθωση, το endpoint αυτο-υπολογίζει το previous_year με τον
+    ίδιο _most_recent_year_with_data helper όταν ο caller δεν το δίνει --
+    οπότε τα δύο endpoints πρέπει τώρα να συμφωνούν.
+    """
+    client = TestClient(app)
+
+    window_score_response = client.get(
+        "/analytics/window-score/2013",
+        params={"serbia_id": serbia_id, "kosovo_id": kosovo_id},
+    )
+    optimal_response = client.get(
+        "/analytics/optimal-mutual-compromise",
+        params={"serbia_id": serbia_id, "kosovo_id": kosovo_id},
+    )
+
+    assert window_score_response.status_code == 200
+    assert optimal_response.status_code == 200
+    assert window_score_response.json()["window_score"] == 61.98
+    assert optimal_response.json()["window_score"] == 61.98
