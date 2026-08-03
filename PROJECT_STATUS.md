@@ -243,6 +243,15 @@ register+login ADMIN αυτόματα, βάζει `Authorization` header). Σύ�
    (OpenAI API call, strict prompt μόνο πάνω σε δοθέν context, temperature=0,
    άρνηση αν λείπουν δεδομένα — βλ. κανόνες LLM integration στο CLAUDE.md)
 3. `POST /synthesis` endpoint (context = όλα τα events + scores, `is_synthesis=true`)
+   - Απόφαση (2026-08-03, από ανασκόπηση `thesis_seed_data.md`): το
+     `political_status` (`INTERNATIONAL_ADMINISTRATION` για Kosovo 1999-2007)
+     θα μπει ως CONTEXT στο system prompt αυτού του endpoint, ΟΧΙ ως νέο
+     πεδίο/migration στο `Country` model.
+   - Το §5 του `thesis_seed_data.md` ("Κεντρικό ερευνητικό συμπέρασμα") είναι
+     έτοιμο υλικό για το system prompt αυτού του endpoint.
+   - TODO: το seed event για την περίοδο UNMIK/Standards-Before-Status δεν
+     αναφέρει ακόμα τις ταραχές του 2004 (πυρπόληση σερβικών εκκλησιών) —
+     βλ. Αλλαγή 2 στο `seed.py`.
 4. Ανοιχτή απόφαση: `is_verified=true` σε World Bank/SIPRI-sourced indicators
    (όχι από τη διπλωματική) — βλ. "Data Sources" στο CLAUDE.md, ζήτημα ρητά
    σημειωμένο, όχι επιλυμένο
