@@ -109,5 +109,33 @@ optimal periods στο context.
 }
 """
 
+COMPARE_TASK = """
+ΕΡΓΟ ΣΥΓΚΡΙΣΗΣ: Σου δίνονται ΔΥΟ events. Εξήγησε τη ΔΙΑΦΟΡΑ τους,
+όχι το καθένα ξεχωριστά. Συγκεκριμένα:
+- Διαφορά ZOPA (ποιο είχε ευρύτερο/στενότερο και γιατί, βάσει των
+  zopa_reasoning και των υπολογισμένων scores).
+- Ποιανού η ισχύς ήταν μεγαλύτερη σε κάθε event (βάσει Power Index/
+  Power Gap) και γιατί — π.χ. στρατιωτική κυριαρχία vs οικονομική
+  εξάρτηση.
+- Διαφορά ωρίμανσης (ripeness): γιατί το ένα ήταν RIPE και το άλλο
+  όχι. Αν ένα event συμπίπτει με ενεργή ένοπλη σύγκρουση (π.χ.
+  βομβαρδισμοί/πόλεμος), σύμφωνα με τη θεωρία ripeness του Zartman η
+  ωριμότητα είναι χαμηλή γιατί καμία πλευρά δεν έχει ακόμα φτάσει σε
+  'mutually hurting stalemate' — ανέφερέ το ρητά ΜΟΝΟ ΑΝ τα δεδομένα
+  του event το στηρίζουν (π.χ. ripeness_status=NOT_RIPE + description
+  που αναφέρει σύγκρουση), ΠΟΤΕ αν δεν προκύπτει από τα πεδία.
+
+Απάντησε ΑΠΟΚΛΕΙΣΤΙΚΑ με JSON της μορφής:
+{
+  "zopa_difference": "string",
+  "power_comparison": "string",
+  "ripeness_difference": "string",
+  "central_contrast": "string",
+  "answer_certainty": "HIGH | MEDIUM | LOW | INSUFFICIENT_DATA",
+  "data_gaps_noted": ["string", "..."]
+}
+"""
+
 SYSTEM_PROMPT_QA = SHARED_PREAMBLE + QA_TASK
 SYSTEM_PROMPT_SYNTHESIS = SHARED_PREAMBLE + SYNTHESIS_TASK
+SYSTEM_PROMPT_COMPARE = SHARED_PREAMBLE + COMPARE_TASK

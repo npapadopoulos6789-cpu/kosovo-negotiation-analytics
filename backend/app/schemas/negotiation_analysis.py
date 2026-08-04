@@ -22,6 +22,14 @@ class SynthesisCreate(BaseModel):
     user_question: str
 
 
+class CompareCreate(BaseModel):
+    """Ό,τι στέλνει ο χρήστης στο POST /compare -- ΑΚΡΙΒΩΣ δύο event_ids,
+    καμία free-text ερώτηση (το task είναι πάντα το ίδιο: εξήγησε τη
+    διαφορά τους)."""
+    event_a_id: int
+    event_b_id: int
+
+
 class NegotiationAnalysisRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

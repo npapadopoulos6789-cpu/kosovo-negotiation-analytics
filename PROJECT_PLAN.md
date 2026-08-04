@@ -3,9 +3,11 @@
 Agent-facing χρονοδιάγραμμα/roadmap. Για το domain model, τους κανόνες και τις
 συμβάσεις δες [CLAUDE.md](CLAUDE.md) — αυτό εδώ είναι μόνο "πού είμαστε / τι ακολουθεί".
 
-**Ενημερώθηκε:** 2026-08-03 · **Branch:** `main` · **Τελευταία αλλαγή:**
-P1-P5 validation tests γράφτηκαν (SEED_DATA_SPEC.md §4.1) + διορθώθηκαν 2
-πραγματικά bugs στο Window Score previous_year logic
+**Ενημερώθηκε:** 2026-08-04 · **Branch:** `main` · **Τελευταία αλλαγή:**
+LLM integration ολοκληρώθηκε (Anthropic Claude, `POST /synthesis` +
+per-event Q&A, πραγματικά live-δοκιμασμένα) + 3ο previous_year bug
+βρέθηκε/διορθώθηκε στο analytics endpoint + security fix (committed
+`.env`, JWT rotation) — βλ. PROJECT_STATUS.md για πλήρεις λεπτομέρειες
 
 **⚠️ Αυτό το αρχείο είναι το αρχικό roadmap, όχι το ζωντανό status. Για το
 ακριβές "πού βρισκόμαστε τώρα" δες το [PROJECT_STATUS.md](PROJECT_STATUS.md),
@@ -30,8 +32,9 @@ P1-P5 validation tests γράφτηκαν (SEED_DATA_SPEC.md §4.1) + διορθ
   Optimal Agreement/Mutual Compromise Period, Best Moments) | ✅ ολοκληρώθηκε,
   22 unit tests |
 | **`NegotiationEvent` (+ `event_participants`)** | ✅ ολοκληρώθηκε |
-| **`NegotiationAnalysis`** | ⚠️ CRUD σκελετός έτοιμος, LLM call ΔΕΝ έχει
-  υλοποιηθεί ακόμα (`llm_answer`/`model_used` μένουν `NULL`) |
+| **`NegotiationAnalysis` + LLM integration** | ✅ ολοκληρώθηκε (2026-08-04) —
+  Anthropic Claude (`claude-sonnet-4-6`), όχι OpenAI· per-event Q&A +
+  `POST /synthesis`, και τα δύο πραγματικά live-δοκιμασμένα |
 | **Seed script** | ✅ πλήρες SEED_DATA_SPEC.md set: 10 events (E1-E10), 59
   indicators, `confidence`/`implementation_success` πεδία — μόνο τα
   προαιρετικά "Future Work" indicators του spec (§2.1-2.4) λείπουν ακόμα |
@@ -40,8 +43,9 @@ P1-P5 validation tests γράφτηκαν (SEED_DATA_SPEC.md §4.1) + διορθ
   P5 τεκμηριωμένο ως μη-επιβεβαιωμένο (μεθοδολογικός περιορισμός, όχι bug) |
 | `requirements.txt` + `pytest.ini` | ✅ (διορθώθηκε 2026-08-02: έλειπαν
   `bcrypt`/`python-jose`/`email-validator`) |
-| Tests (unit/integration) | ✅ **80 passed** — αλλά κενά coverage: όχι unit
-  test για User service, όχι integration tests για negotiation-analyses/analytics |
+| Tests (unit/integration) | ✅ **82 passed** — αλλά κενά coverage: όχι unit
+  test για User service, όχι integration tests για negotiation-analyses/
+  analytics/synthesis (τα LLM calls επιβεβαιώθηκαν live/χειροκίνητα) |
 | Docker Compose πλήρες stack (api + frontend services) | ❌ — μόνο `db` υπάρχει |
 | README.md (ο άνθρωπος-αναγνώστης) | ❌ — δεν έχει γραφτεί ακόμα |
 | Frontend (React dashboard) | ❌ — δεν υπάρχει καν ο φάκελος |
@@ -95,12 +99,15 @@ Model με τα ZOPA/ripeness/BATNA/red lines πεδία + association table
 (event_id, country_id, role) διαχειρίζεται μέσα από το event schema. Business
 rule: `economic_weight + military_weight + social_weight == 10` → 422.
 
-### 6. NegotiationAnalysis + LLM integration ⚠️ ΜΙΣΟΤΕΛΕΙΩΜΕΝΟ
-Model + CRUD slice (GET/POST) έτοιμα. **Η πραγματική LLM κλήση ΔΕΝ έχει γραφτεί
-ακόμα** — `POST /negotiation-analyses` αποθηκεύει το ερώτημα με `llm_answer=NULL`.
-Μένει: LLM service (`temperature=0`, JSON response, context = μόνο δομημένα
-πεδία event + Indicators ±1-2 έτη + Power Index/Gap/Window Score/Optimal Periods
-+ participants) και το `POST /synthesis` endpoint.
+### 6. NegotiationAnalysis + LLM integration ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ (2026-08-04)
+Model + CRUD slice + πραγματικό LLM call, και τα δύο έτοιμα. Πάροχος:
+**Anthropic Claude** (`claude-sonnet-4-6`, `temperature=0`, JSON response) —
+απόφαση που αντικατέστησε το αρχικό σχέδιο για OpenAI (ποτέ υλοποιημένο,
+μόνο σχόλιο πρόθεσης). Context: δομημένα πεδία event + Indicators ±2 έτη
+(Q&A) ή όλα τα events + timeline + optimal periods + best_moments
+(synthesis) + participants. `POST /negotiation-analyses` (per-event Q&A)
+και `POST /synthesis` (γενική ανάλυση, `is_synthesis=true`) και τα δύο
+πραγματικά δοκιμασμένα live. Λεπτομέρειες: PROJECT_STATUS.md.
 
 ### 7. Seed script ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ, πλήρες SEED_DATA_SPEC.md σετ
 `python -m app.scripts.seed` — 9 countries/actors, 59 indicators (πραγματικές

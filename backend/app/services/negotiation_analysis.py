@@ -11,7 +11,7 @@ from app.repositories import country as country_repository
 from app.schemas.negotiation_analysis import NegotiationAnalysisCreate
 from app.services import analytics as analytics_service
 from app.services import llm_client
-from app.services.llm_prompts import SYSTEM_PROMPT_QA, SYSTEM_PROMPT_SYNTHESIS
+from app.services.llm_prompts import SYSTEM_PROMPT_QA, SYSTEM_PROMPT_SYNTHESIS, SYSTEM_PROMPT_COMPARE
 
 
 class NegotiationAnalysisNotFoundError(Exception):
@@ -24,6 +24,12 @@ class EventForAnalysisNotFoundError(Exception):
     def __init__(self, event_id: int):
         self.event_id = event_id
         super().__init__(f"NegotiationEvent {event_id} not found for analysis")
+
+
+class IdenticalComparisonEventsError(Exception):
+    def __init__(self, event_id: int):
+        self.event_id = event_id
+        super().__init__(f"Cannot compare NegotiationEvent {event_id} with itself")
 
 
 def list_analyses(db: Session) -> list[NegotiationAnalysis]:
@@ -163,9 +169,27 @@ def _build_synthesis_context(db: Session) -> dict:
     }
 
 
+def _build_compare_context(db: Session, event_a: NegotiationEvent, event_b: NegotiationEvent) -> dict:
+    # reuse _build_event_context ×2 -- ίδια δομημένα πεδία + indicators +
+    # analytics ανά event, χωρίς διπλή λογική εδώ
+    return {
+        "event_a": _build_event_context(db, event_a),
+        "event_b": _build_event_context(db, event_b),
+    }
+
+
 def _build_user_message(user_question: str, context: dict) -> str:
     return (
         f"ΕΡΩΤΗΣΗ ΧΡΗΣΤΗ: {user_question}\n\n"
+        f"CONTEXT (JSON):\n{json.dumps(context, ensure_ascii=False, indent=2)}"
+    )
+
+
+def _build_compare_message(context: dict) -> str:
+    # Δεν υπάρχει free-text ερώτηση χρήστη στο compare -- μόνο τα δύο events
+    return (
+        f"ΣΥΓΚΡΙΣΗ EVENTS: event_a (id={context['event_a']['event']['id']}) vs "
+        f"event_b (id={context['event_b']['event']['id']})\n\n"
         f"CONTEXT (JSON):\n{json.dumps(context, ensure_ascii=False, indent=2)}"
     )
 
@@ -197,6 +221,45 @@ def create_analysis(db: Session, data: NegotiationAnalysisCreate) -> Negotiation
         negotiation_event_id=data.negotiation_event_id,
         is_synthesis=is_synthesis,
         user_question=data.user_question,
+        llm_answer=result["raw_text"],
+        model_used=result["model"],
+    )
+    return analysis_repository.create(db, analysis)
+
+
+# ---------------------------------------------------------------------------
+# create_comparison -- σύγκριση ΑΚΡΙΒΩΣ δύο events, ίδιο LLM στρώμα με
+# create_analysis παραπάνω, ξεχωριστό system prompt/context builder
+# ---------------------------------------------------------------------------
+
+def create_comparison(db: Session, event_a_id: int, event_b_id: int) -> NegotiationAnalysis:
+    if event_a_id == event_b_id:
+        raise IdenticalComparisonEventsError(event_a_id)
+
+    event_a = event_repository.get_by_id(db, event_a_id)
+    if event_a is None:
+        raise EventForAnalysisNotFoundError(event_a_id)
+
+    event_b = event_repository.get_by_id(db, event_b_id)
+    if event_b is None:
+        raise EventForAnalysisNotFoundError(event_b_id)
+
+    context = _build_compare_context(db, event_a, event_b)
+    user_message = _build_compare_message(context)
+
+    # Ίδια εγγύηση με το create_analysis: LLMCallError -> καμία αποθήκευση.
+    result = llm_client.call_llm(SYSTEM_PROMPT_COMPARE, user_message)
+
+    # negotiation_event_id=event_a_id (όχι NULL+is_synthesis=True): το
+    # is_synthesis σημαίνει "πάνω σε ΟΛΑ τα events", όχι "πάνω σε 2 events",
+    # άρα θα ήταν παραπλανητικό. Με event_a_id ως FK η εγγραφή εμφανίζεται
+    # στο GET /negotiation-analyses/by-event/{event_a_id}· το event_b_id
+    # μπαίνει ρητά στο user_question ώστε να μείνει ανιχνεύσιμο χωρίς
+    # migration για δεύτερη FK στήλη.
+    analysis = NegotiationAnalysis(
+        negotiation_event_id=event_a_id,
+        is_synthesis=False,
+        user_question=f"[COMPARE] Event {event_a_id} vs Event {event_b_id}",
         llm_answer=result["raw_text"],
         model_used=result["model"],
     )

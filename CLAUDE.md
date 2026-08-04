@@ -164,7 +164,9 @@ cd frontend && npm run dev                # :5173 -- ΔΕΝ υπάρχει ακ�
   όπως στο υπάρχον `Country` model) — ΟΧΙ 2.0 `Mapped[]`/`mapped_column`, για
   συνέπεια με το ήδη γραμμένο μοντέλο.
 - Ονόματα: snake_case Python, PascalCase models/schemas, plural routes (`/countries`).
-- Secrets ΜΟΝΟ σε `.env` (ποτέ commit) — `OPENAI_API_KEY`, `DATABASE_URL`, `JWT_SECRET`.
+- Secrets ΜΟΝΟ σε `.env` (ποτέ commit) — `ANTHROPIC_API_KEY`, `DATABASE_URL`,
+  `JWT_SECRET_KEY` (Anthropic Claude, όχι OpenAI — απόφαση 2026-08-04, βλ.
+  PROJECT_STATUS.md). Φορτώνονται κεντρικά από `app/core/config.py`.
 - Κάθε νέο service function αποκτά unit test. Ο υπολογιστικός πυρήνας (power index/
   gap/window score/optimal periods) θέλει tests με γνωστά inputs/outputs + edge cases
   (λείπουν indicators, ένα μόνο έτος, μηδενικές τιμές).

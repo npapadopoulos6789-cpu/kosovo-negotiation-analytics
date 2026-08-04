@@ -7,7 +7,7 @@ from app.schemas.negotiation_analysis import NegotiationAnalysisCreate
 from app.services import negotiation_analysis as analysis_service
 from app.services.llm_client import LLMCallError
 from app.services.negotiation_analysis import (
-    NegotiationAnalysisNotFoundError, EventForAnalysisNotFoundError
+    NegotiationAnalysisNotFoundError, EventForAnalysisNotFoundError, IdenticalComparisonEventsError
 )
 
 
@@ -210,3 +210,36 @@ def test_list_analyses_by_event_filters_correctly(
 
     assert len(result) == 1
     assert result[0].negotiation_event_id == 1
+
+
+def test_create_comparison_happy_path(
+    fake_analysis_repo, fake_event_repo, fake_context_dependencies, fake_llm_call
+):
+    fake_event_repo._events[2] = NegotiationEvent(id=2, title="Rambouillet Talks", date=date(1999, 2, 6))
+    fake_event_repo._events[7] = NegotiationEvent(id=7, title="Brussels Agreement", date=date(2013, 4, 19))
+
+    created = analysis_service.create_comparison(db=None, event_a_id=2, event_b_id=7)
+
+    assert created.negotiation_event_id == 2
+    assert created.is_synthesis is False
+    assert "2" in created.user_question
+    assert "7" in created.user_question
+    assert created.llm_answer == FAKE_LLM_RAW_TEXT
+    assert len(fake_llm_call) == 1
+
+
+def test_create_comparison_rejects_identical_events(fake_analysis_repo, fake_event_repo, fake_llm_call):
+    with pytest.raises(IdenticalComparisonEventsError):
+        analysis_service.create_comparison(db=None, event_a_id=2, event_b_id=2)
+
+    # Ίδια πλευρά -- δεν πρέπει καν να φτάσουμε στο event lookup/LLM call
+    assert len(fake_llm_call) == 0
+
+
+def test_create_comparison_rejects_missing_event(fake_analysis_repo, fake_event_repo, fake_llm_call):
+    fake_event_repo._events[2] = NegotiationEvent(id=2, title="Rambouillet Talks", date=date(1999, 2, 6))
+
+    with pytest.raises(EventForAnalysisNotFoundError):
+        analysis_service.create_comparison(db=None, event_a_id=2, event_b_id=999)
+
+    assert len(fake_llm_call) == 0

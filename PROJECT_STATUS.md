@@ -32,11 +32,16 @@ https://github.com/npapadopoulos6789-cpu/kosovo-negotiation-analytics
 
 ## ΠΟΥ ΒΡΙΣΚΟΜΑΣΤΕ ΤΩΡΑ (ενημέρωσε αυτό το κομμάτι σε κάθε session)
 
-_Τελευταία πλήρης ανανέωση: 2026-08-03, μετά το SEED_DATA_SPEC.md Στάδιο 1+2+3_
-_(P1-P5 validation tests) + διόρθωση δύο πραγματικών bugs στο analytics.py._
-_`pytest -q` στο `backend/`: **80 passed**, 0 failed. `git status` καθαρό,_
-_όλα committed (τελευταίο commit: `5a56808`) — **4 commits ahead of_
-_`origin/main`, δεν έχει γίνει push ακόμα.**_
+_Τελευταία πλήρης ανανέωση: 2026-08-04. Μεγάλο session: (1) ανασκόπηση_
+_`thesis_seed_data.md`, (2) πλήρης συστηματικός έλεγχος υγείας backend_
+_(6 ενότητες) πριν νέα features, (3) εύρημα+διόρθωση πραγματικού bug στο_
+_`/analytics/window-score/{year}` endpoint, (4) εύρημα+διόρθωση security_
+_issue (`backend/.env` ήταν committed+pushed στο GitHub), (5) πλήρες LLM_
+_integration με Anthropic Claude (**όχι OpenAI** -- αλλαγή απόφασης, βλ._
+_παρακάτω), synthesis + per-event Q&A, και τα δύο πραγματικά δοκιμασμένα._
+_`pytest -q` στο `backend/`: **82 passed**, 0 failed. `git status` καθαρό,_
+_όλα committed ΚΑΙ pushed (`git rev-list origin/main..HEAD` = 0) --_
+_τελευταίο commit: `358d70e`._
 
 ### Infrastructure
 - venv, πλήρης δομή φακέλων (`models/schemas/repositories/services/api/core`)
@@ -51,7 +56,7 @@ _`origin/main`, δεν έχει γίνει push ακόμα.**_
   `include_router(...)` + exception handlers που κάνουν map custom domain
   exceptions σε HTTP status codes (404/409/422/401)
 - Git/GitHub: repo συνδεδεμένο, https://github.com/npapadopoulos6789-cpu/kosovo-negotiation-analytics,
-  τελευταίο commit `16be597` (οι σημερινές αλλαγές δεν έχουν γίνει commit ακόμα)
+  τελευταίο commit `358d70e`, όλα pushed (`origin/main` == `HEAD`)
 - `requirements.txt` διορθώθηκε 2026-08-02: έλειπαν `bcrypt`, `python-jose[cryptography]`,
   `email-validator` — όλα ήδη χρησιμοποιούνταν από το `core/security.py`/Pydantic
   `EmailStr` αλλά δεν ήταν καταγεγραμμένα· fresh install θα έσκαγε
@@ -81,10 +86,10 @@ _`origin/main`, δεν έχει γίνει push ακόμα.**_
    νόημα να επεξεργαστείς μια LLM απάντηση). Business rule:
    `negotiation_event_id=None` → `is_synthesis=True` αυτόματα· αν δοθεί
    event_id, πρέπει να υπάρχει (`EventForAnalysisNotFoundError`).
-   **ΠΡΟΣΩΡΙΝΑ δεν καλεί ακόμα το LLM** — το `POST /negotiation-analyses`
-   αποθηκεύει μόνο το `user_question`, με `llm_answer=None`,
-   `model_used=None`. Το πραγματικό OpenAI integration (system prompt με
-   strict context, temperature=0) είναι το επόμενο ξεχωριστό βήμα.
+   **LLM integration ΟΛΟΚΛΗΡΩΘΗΚΕ (2026-08-04, βλ. ενότητα "LLM integration"
+   παρακάτω) — `POST /negotiation-analyses` κάνει πλέον πραγματικό call στο
+   Claude API.** `llm_answer` αποθηκεύει το πλήρες JSON response ως string,
+   `model_used="claude-sonnet-4-6"`.
 5. **User + Auth** — `app/models/user.py` (email, hashed_password, role
    ADMIN/VIEWER), `app/core/security.py` (password hashing, JWT create/decode),
    `POST /auth/register`, `POST /auth/login` (JSON body, όχι OAuth2 form —
@@ -131,6 +136,34 @@ _`origin/main`, δεν έχει γίνει push ακόμα.**_
     Ohrid Agreement (2023) ανέβηκε από MEDIUM σε **HIGH** (window_score
     πέρασε το `BEST_MOMENT_THRESHOLD=60.0`)
   - Regression tests προστέθηκαν και για τα δύο σημεία
+- 🐛 **3ο ίδιο bug pattern βρέθηκε και διορθώθηκε (2026-08-04) στο ΙΔΙΟ το
+  `GET /analytics/window-score/{year}` endpoint** (`app/api/analytics.py`):
+  το `previous_year` ήταν optional query param με default `None` — αν ο
+  caller δεν το έδινε, το trend_score μηδενιζόταν αθόρυβα (57.34 αντί
+  61.98 για το 2013), ενώ το `/optimal-mutual-compromise` για το ΙΔΙΟ έτος
+  έδινε 61.98 — δύο endpoints διαφωνούσαν για την ίδια τιμή. Εντοπίστηκε
+  σε συστηματικό health-check πριν το LLM integration (βλ. "Backend
+  health-check" παρακάτω). Fix: όταν `previous_year is None` ΚΑΙ το έτος
+  είναι μέσα στο `KEY_YEARS`, το endpoint τώρα αυτο-υπολογίζει με το ίδιο
+  `_most_recent_year_with_data` helper (καμία νέα helper function).
+  Ρητό override από τον caller συνεχίζει να δουλεύει. Νέο regression test
+  `test_window_score_endpoint_autocomputes_previous_year`
+  (`test_validation_targets.py`) επιβεβαιώνει ότι και τα 3 analytics
+  endpoints (`window-score`, `optimal-mutual-compromise`, `best-moments`)
+  συμφωνούν πλέον για το 2013 (61.98).
+
+### Backend health-check (2026-08-03/04, πριν το LLM integration)
+Συστηματικός έλεγχος σε 6 ενότητες πριν προστεθούν νέα features (πλήρες
+reset ΒΔ → migrate → seed → business rules → analytics determinism →
+auth roles → πλήρες test suite → API surface). Αποτέλεσμα: όλα ✓ εκτός
+από το Finding A παραπάνω (ήδη διορθωμένο). Δευτερεύοντα ευρήματα (όχι
+bugs, απλές παρατηρήσεις):
+- Η ΒΔ έχει 10 events (E1-E10 του `SEED_DATA_SPEC.md`), όχι 7-8 όπως
+  περιέγραφε το παλαιότερο `thesis_seed_data.md` — αναμενόμενο, το
+  `seed.py` ακολουθεί το πιο πρόσφατο/λεπτομερές spec.
+- `/countries` (χωρίς trailing slash) vs `/indicators/`,
+  `/negotiation-events/`, `/negotiation-analyses/` (με trailing slash) —
+  ασυνέπεια σύμβασης routes, όχι σφάλμα λειτουργίας, δεν διορθώθηκε.
 
 ### Validation tests P1-P5 (`tests/unit/test_validation_targets.py`, 6 tests)
 Integration-style πάνω στην ήδη-γεμάτη ΒΔ (πραγματικό `SessionLocal`, όχι
@@ -173,7 +206,22 @@ ADMIN-only). Όλα τα GET endpoints παραμένουν δημόσια, χω
 Επιβεβαιώθηκε end-to-end με live curl requests (register/login/POST με και
 χωρίς token → 200/201/401 όπως αναμενόταν).
 
-### Seed script (`app/scripts/seed.py`) — ενημερώθηκε 2026-08-02/03 βάσει SEED_DATA_SPEC.md
+### 🔒 Security fix (2026-08-04): backend/.env ήταν committed+pushed
+`backend/.env` ήταν ήδη tracked στο git ΚΑΙ pushed στο `origin/main` από
+δύο παλαιότερα commits (`c9617c2`, `cee82a1`) — το `.gitignore` δεν
+αποσυνδέει αναδρομικά αρχεία που ήταν ήδη tracked πριν προστεθεί το
+pattern. Αποτέλεσμα: `DATABASE_URL` και `JWT_SECRET_KEY` ήταν ήδη
+εκτεθειμένα στο GitHub history πριν καν ξεκινήσει αυτό το session.
+Εντοπίστηκε ενώ γινόταν το ANTHROPIC_API_KEY setup (θα προστίθετο ΚΙ
+ΑΥΤΟ στο ίδιο tracked αρχείο αν δεν σταματούσαμε).
+**Διόρθωση (commit `9bc8be5`):** `git rm --cached backend/.env`
+(σταματά το tracking, το τοπικό αρχείο μένει), `JWT_SECRET_KEY`
+rotated σε νέο τυχαίο token (invalidates όλα τα παλιά JWT). Το git
+ιστορικό ΔΕΝ ξαναγράφτηκε (ρητή απόφαση — το παλιό secret παραμένει
+ορατό στο history/GitHub, αλλά δεν έχει πλέον πρακτική αξία μετά το
+rotation). `ANTHROPIC_API_KEY` ΠΟΤΕ δεν μπήκε σε commit.
+
+### Seed script (`app/scripts/seed.py`) — ενημερώθηκε 2026-08-02/03/04 βάσει SEED_DATA_SPEC.md
 9 countries/actors, **59 indicators**, **10 negotiation events (E1-E10, πλήρες
 σετ του spec)**. Ρητές αποφάσεις αυτής της αναθεώρησης (όχι τυφλή υιοθέτηση
 του spec):
@@ -219,52 +267,140 @@ ADMIN-only). Όλα τα GET endpoints παραμένουν δημόσια, χω
 - 🐛 Διορθώθηκε στο πέρασμα: το τελικό `print("...✅...")` έσκαγε με
   `UnicodeEncodeError` σε Windows console με cp1253 codepage (αφαιρέθηκε το
   emoji, καθαρά cosmetic, καμία επίπτωση σε δεδομένα)
+- **2026-08-04, από ανασκόπηση `thesis_seed_data.md`** (νέο αρχείο, μη
+  committed, περιείχε ένα παλαιότερο/χοντρικότερο draft σχεδόν πλήρως
+  ήδη απορροφημένο στο `SEED_DATA_SPEC.md`/`seed.py`): εμπλουτίστηκε
+  ΜΟΝΟ το `description` του E4 ("Standards Before Status") ώστε να
+  αναφέρει τις εθνοτικές ταραχές του 2004 (πυρπόληση σερβικών εκκλησιών,
+  εκτοπισμός, UNMIK έχασε προσωρινά τον έλεγχο) — καμία αλλαγή σε
+  ripeness/zopa/batna/weights/negotiation_type. Απόφαση: το
+  `political_status` (Kosovo 1999-2007 = `INTERNATIONAL_ADMINISTRATION`
+  υπό UNMIK, τεκμηριωμένο από τη διπλωματική) μπαίνει ΜΟΝΟ ως context
+  στο system prompt του LLM (βλ. ενότητα "LLM integration" παρακάτω),
+  ΟΧΙ ως νέο πεδίο/migration στο `Country` model.
+
+### LLM integration (2026-08-04) — ΟΛΟΚΛΗΡΩΘΗΚΕ: Anthropic Claude, όχι OpenAI
+**Απόφαση παρόχου:** Το CLAUDE.md/PROJECT_STATUS ανέφεραν μέχρι τώρα OpenAI
+(π.χ. "OPENAI_API_KEY" στα secrets) — αυτό ήταν απλώς πρόθεση σε σχόλιο,
+ποτέ υλοποιημένο. Αποφασίστηκε ρητά **Anthropic Claude API**
+(`claude-sonnet-4-6`, `temperature=0`) αντ' αυτού. Το CLAUDE.md
+ενημερώθηκε (secrets: `ANTHROPIC_API_KEY` αντί `OPENAI_API_KEY`).
+
+**Νέα αρχεία:**
+- `app/core/config.py` — κεντρικό `load_dotenv()` + `DATABASE_URL`/
+  `JWT_SECRET_KEY`/`ANTHROPIC_API_KEY`. `database.py`/`security.py`
+  refactored να διαβάζουν από εδώ (καμία λειτουργική αλλαγή, ίδιο public
+  API, επιβεβαιώθηκε με πλήρες pytest + `alembic current`).
+- `app/services/llm_prompts.py` — τα 2 system prompts (καθαρά constants,
+  καμία λογική), εγκεκριμένα λέξη-λέξη σε ξεχωριστή φάση σχεδιασμού πριν
+  γραφτεί οποιοσδήποτε κώδικας κλήσης. Κοινό preamble (methodology PI/
+  Gap/Window Score, ρητός κανόνας `null` = "δεν υπάρχει πηγή" ΟΧΙ μηδέν,
+  `political_status` context για Kosovo 1999-2007, απαγόρευση εξωτερικής
+  γνώσης, απαγόρευση κατασκευής δηλώσεων προσώπων) + task-specific μέρος
+  για Q&A και για synthesis (ρητή εντολή σύγκρισης ποσοτικού/ποιοτικού +
+  ρητή εντολή ΜΗ υπερδιατύπωσης σύγκλισης, ώστε το P5 -μη επιβεβαιωμένο-
+  να μην "εξαφανιστεί" σε αισιόδοξη γλώσσα).
+- `app/services/llm_client.py` — λεπτό wrapper πάνω στο Anthropic SDK.
+  `LLMCallError` καλύπτει ΚΑΘΕ αποτυχία (network/auth/rate-limit/μη-έγκυρο
+  JSON) — ο caller δεν αποθηκεύει ΠΟΤΕ μισή εγγραφή όταν σηκωθεί.
+  `_strip_code_fence` αφαιρεί τυχόν ` ```json ` wrapping. `MAX_TOKENS=8192`
+  (ανέβηκε από 2048 αφού το πρώτο πραγματικό synthesis call έκοψε το JSON
+  στη μέση — `Unterminated string`). Print statement (ΟΧΙ persisted, ΟΧΙ
+  νέο πεδίο) τυπώνει `input_tokens`/`output_tokens`/`max_tokens` σε κάθε
+  call, ώστε να φαίνεται στο terminal αν το όριο είναι άνετο.
+- `app/api/synthesis.py` — `POST /synthesis`. Μηδενική διπλή λογική: απλά
+  φτιάχνει `NegotiationAnalysisCreate(negotiation_event_id=None, ...)` και
+  καλεί το ΙΔΙΟ `create_analysis` — το `is_synthesis=True` ήδη γινόταν
+  αυτόματα όταν `negotiation_event_id is None`.
+
+**Αλλαγές σε υπάρχοντα:**
+- `app/services/negotiation_analysis.py` — `create_analysis` κάνει τώρα
+  πραγματικό LLM call αντί για placeholder. Context builders:
+  `_build_event_context` (Q&A: το event + participants + Indicators
+  Serbia/Kosovo ±2 έτη ομαδοποιημένα ανά category + Power Index/Gap/
+  Window Score/Optimal Periods της περιόδου) και `_build_synthesis_context`
+  (όλα τα 10 events + timeline πάνω σε `KEY_YEARS` + Optimal Periods +
+  `find_best_moments` — έτοιμος convergent-validity έλεγχος, ιδανικό
+  υλικό σύγκρισης). Το `window_score` στο context χρησιμοποιεί το ΙΔΙΟ
+  auto-compute `previous_year` pattern με το Finding A fix, ώστε το
+  context να συμφωνεί με τα analytics endpoints.
+- `app/schemas/negotiation_analysis.py` — νέο `SynthesisCreate`
+  (`user_question: str`, τίποτα άλλο).
+- `main.py` — registered `synthesis_router`, νέος exception handler
+  `LLMCallError` → 502 (upstream/parse failure, όχι δικό μας σφάλμα).
+
+**Πραγματικά επιβεβαιωμένο live (όχι μόνο mocked tests):**
+- Smoke test (`app/scripts/test_llm.py`) πέτυχε πρώτο.
+- 1 πραγματικό synthesis call: πρώτη προσπάθεια απέτυχε (502, JSON
+  κόπηκε στη μέση με `MAX_TOKENS=2048`) — ανέβηκε σε 8192, ξανατρέχτηκε,
+  πέτυχε καθαρά (10.499 χαρακτήρες, JSON parse OK, 10/10 events στο
+  `quantitative_qualitative_comparison`, `answer_certainty=MEDIUM`,
+  σωστά ρητή αναφορά του χάσματος ωρίμανση/εφαρμογή στο `central_finding`
+  για 2013/2023).
+- 1 πραγματικό per-event Q&A call (event 1): 201, `input: 2674, output:
+  1540 (max_tokens=8192)` στο log — άνετο περιθώριο.
+- Και τα δύο test records σβήστηκαν χειροκίνητα μετά την επιβεβαίωση
+  (δεν υπάρχει DELETE endpoint για `NegotiationAnalysis` — σκόπιμο,
+  διαγράφηκαν απευθείας μέσω `SessionLocal`).
+
+**Tests:** `tests/unit/test_negotiation_analysis_service.py` ξαναγράφτηκε
+πλήρως mocked (`FakeCountryRepository`, `FakeIndicatorRepository`,
+`FakeAnalyticsService` stub, `fake_llm_call` — ΚΑΝΕΝΑ πραγματικό API call
+μέσα από pytest). 6 tests, +1 νέο
+(`test_create_analysis_does_not_save_when_llm_call_fails` — επιβεβαιώνει
+ότι `LLMCallError` δεν αφήνει μισή εγγραφή).
+
+**Ανοιχτό/μελλοντικό:** το `output_tokens`/`input_tokens` μόνο τυπώνεται
+στο terminal, δεν αποθηκεύεται πουθενά (σκόπιμο, όχι θέλαμε migration) —
+αν χρειαστεί ιστορικό tracking αργότερα, θέλει ρητή απόφαση για νέο
+πεδίο/πίνακα.
 
 ### Tests
 `backend/tests/`: 6 unit test files (fake repositories/monkeypatch, χωρίς
-πραγματική ΒΔ: country, indicator, negotiation_event, negotiation_analysis,
-analytics) + `test_validation_targets.py` (**integration-style, πραγματική
-ΒΔ μέσω `SessionLocal`, όχι mocked** — μοναδική εξαίρεση στο πρότυπο) + 3
-integration test files (πραγματικά HTTP requests μέσω `TestClient` σε SQLite
-in-memory: country, indicator, negotiation_event). Fixtures στο `conftest.py`:
-`client` (χωρίς auth, για GET-only tests) και `admin_client` (κάνει
-register+login ADMIN αυτόματα, βάζει `Authorization` header). Σύνολο:
-**80 passed**.
+πραγματική ΒΔ: country, indicator, negotiation_event, negotiation_analysis
+[πλήρως mocked ΚΑΙ το LLM call, βλ. "LLM integration" παραπάνω], analytics)
++ `test_validation_targets.py` (**integration-style, πραγματική ΒΔ μέσω
+`SessionLocal`, όχι mocked** — μοναδική εξαίρεση στο πρότυπο, 7 tests πια
+μετά το νέο regression test του Finding A) + 3 integration test files
+(πραγματικά HTTP requests μέσω `TestClient` σε SQLite in-memory: country,
+indicator, negotiation_event). Fixtures στο `conftest.py`: `client`
+(χωρίς auth, για GET-only tests) και `admin_client` (κάνει register+login
+ADMIN αυτόματα, βάζει `Authorization` header). Σύνολο: **82 passed**.
 
-**Κενά στο test coverage** (εντοπίστηκαν 2026-08-02, δεν διορθώθηκαν ακόμα):
-- `User`/auth service (`register_user`, `authenticate_user`) δεν έχει δικό του
-  unit test file — δοκιμάζεται μόνο έμμεσα μέσω του `admin_client` fixture
-- Δεν υπάρχει integration test file για `negotiation-analyses` ή για
-  `analytics` endpoints (μόνο unit tests με mocks)
+**Κενά στο test coverage** (εντοπίστηκαν 2026-08-02, δεν διορθώθηκαν ακόμα —
+βλ. αναλυτικά στο "Επόμενο βήμα" #3 παρακάτω): `User`/auth service χωρίς
+δικό του unit test file, καμία integration test file για negotiation-
+analyses/analytics/synthesis endpoints.
 
-**Επόμενο βήμα:**
-1. **Push** στο GitHub — 4 commits ahead of `origin/main`, δεν έχει γίνει ακόμα
-2. Πραγματικό LLM integration στο `NegotiationAnalysis.create_analysis`
-   (OpenAI API call, strict prompt μόνο πάνω σε δοθέν context, temperature=0,
-   άρνηση αν λείπουν δεδομένα — βλ. κανόνες LLM integration στο CLAUDE.md)
-3. `POST /synthesis` endpoint (context = όλα τα events + scores, `is_synthesis=true`)
-   - Απόφαση (2026-08-03, από ανασκόπηση `thesis_seed_data.md`): το
-     `political_status` (`INTERNATIONAL_ADMINISTRATION` για Kosovo 1999-2007)
-     θα μπει ως CONTEXT στο system prompt αυτού του endpoint, ΟΧΙ ως νέο
-     πεδίο/migration στο `Country` model.
-   - Το §5 του `thesis_seed_data.md` ("Κεντρικό ερευνητικό συμπέρασμα") είναι
-     έτοιμο υλικό για το system prompt αυτού του endpoint.
-   - TODO: το seed event για την περίοδο UNMIK/Standards-Before-Status δεν
-     αναφέρει ακόμα τις ταραχές του 2004 (πυρπόληση σερβικών εκκλησιών) —
-     βλ. Αλλαγή 2 στο `seed.py`.
-4. Ανοιχτή απόφαση: `is_verified=true` σε World Bank/SIPRI-sourced indicators
+**Ολοκληρώθηκαν αυτό το session (πρώην "Επόμενο βήμα"):**
+- ~~Push στο GitHub~~ ✅ όλα committed ΚΑΙ pushed, `origin/main` == `HEAD`
+- ~~Πραγματικό LLM integration~~ ✅ Anthropic Claude, όχι OpenAI (βλ. "LLM
+  integration" παραπάνω)
+- ~~`POST /synthesis` endpoint~~ ✅ υλοποιήθηκε, πραγματικό call επιβεβαιώθηκε
+- ~~`political_status`/thesis_seed_data.md αποφάσεις~~ ✅ context-only,
+  E4 description εμπλουτίστηκε
+
+**Επόμενο βήμα (ό,τι μένει ανοιχτό):**
+1. Ανοιχτή απόφαση: `is_verified=true` σε World Bank/SIPRI-sourced indicators
    (όχι από τη διπλωματική) — βλ. "Data Sources" στο CLAUDE.md, ζήτημα ρητά
    σημειωμένο, όχι επιλυμένο
-5. Ανοιχτή απόφαση: ο `analytics` router κάνει `raise HTTPException` απευθείας
+2. Ανοιχτή απόφαση: ο `analytics` router κάνει `raise HTTPException` απευθείας
    αντί για custom domain exception + handler στο `main.py`, μόνη απόκλιση από
    το πρότυπο των υπόλοιπων routers
-6. Κενά test coverage: unit tests για User service, integration tests για
-   negotiation-analyses/analytics
-7. Τα deferred indicators/event-markers του `SEED_DATA_SPEC.md` (§2.1-2.4,
+3. Κενά test coverage: unit tests για User service, integration tests για
+   negotiation-analyses/analytics/synthesis endpoints (τα πραγματικά LLM
+   calls επιβεβαιώθηκαν χειροκίνητα/live, όχι μέσω αυτοματοποιημένου
+   integration test)
+4. Μικρή ασυνέπεια σύμβασης: `/countries` χωρίς trailing slash vs τα
+   υπόλοιπα routers με trailing slash (εντοπίστηκε στο health-check,
+   χαμηλή προτεραιότητα)
+5. `output_tokens`/`input_tokens` μόνο log, όχι persisted — απόφαση αν
+   χρειάζεται ιστορικό tracking αργότερα
+6. Τα deferred indicators/event-markers του `SEED_DATA_SPEC.md` (§2.1-2.4,
    βλ. "Future Work" σχόλιο στο seed.py) — προαιρετικό, χαμηλή προτεραιότητα
-8. Docker Compose: μόνο η υπηρεσία `db` υπάρχει· λείπουν οι υπηρεσίες `api`/`frontend`
-9. README.md δεν έχει γραφτεί ακόμα (ο άνθρωπος-αναγνώστης διαβάζει αυτό, όχι το CLAUDE.md)
-10. Μετά: React frontend (`frontend/`, δεν έχει ξεκινήσει ακόμα — δεν υπάρχει καν ο φάκελος)
+7. Docker Compose: μόνο η υπηρεσία `db` υπάρχει· λείπουν οι υπηρεσίες `api`/`frontend`
+8. README.md δεν έχει γραφτεί ακόμα (ο άνθρωπος-αναγνώστης διαβάζει αυτό, όχι το CLAUDE.md)
+9. Μετά: React frontend (`frontend/`, δεν έχει ξεκινήσει ακόμα — δεν υπάρχει καν ο φάκελος)
 
 **Ρητά ΟΧΙ τώρα (αποφασισμένο, future work):** live data-refresh endpoint που
 καλεί το World Bank API on-demand από FastAPI (ADMIN-only, workflow
@@ -282,3 +418,20 @@ register+login ADMIN αυτόματα, βάζει `Authorization` header). Σύ�
 - Προσοχή PowerShell vs cmd (πρέπει να βλέπουμε `PS` στο prompt)
 - Να ενεργοποιείται το venv σε κάθε νέο terminal (`venv\Scripts\Activate.ps1`)
 - GitHub account που χρησιμοποιούμε: npapadopoulos6789-cpu (όχι pouritanos42)
+- **Πάντα έλεγχος `git status`/`git log -- <αρχείο>` πριν υποθέσεις ότι ένα
+  `.gitignore`-listed αρχείο είναι πράγματι untracked** — το gitignore δεν
+  ισχύει αναδρομικά, ένα `.env` μπορεί να είναι ήδη committed+pushed από
+  πολύ παλιά (ακριβώς αυτό συνέβη 2026-08-04, βλ. "Security fix")
+- Στο Windows/Git Bash: `/tmp/...` paths δεν είναι πάντα ορατά με το ίδιο
+  path σε native Windows Python (χρειάζεται `cygpath -w` για μετατροπή) —
+  και `print()`/stdout redirect με ελληνικά+ειδικούς χαρακτήρες (π.χ. ∅)
+  σκάει με `UnicodeEncodeError` σε cp1253 console αν δεν γραφτεί απευθείας
+  σε αρχείο με `encoding="utf-8"`
+- Μετά από `docker compose down -v`, όποιο uvicorn process έτρεχε ήδη
+  κρατάει νεκρές DB connections στο pool (η Postgres "κάτω από τα πόδια
+  του" άλλαξε) — πάντα kill+restart το server μετά από DB reset, όχι μόνο
+  μετά από αλλαγή κώδικα
+- FastAPI routers: πρόσεχε trailing slash ασυνέπειες μεταξύ routers
+  (`/countries` vs `/negotiation-events/`) — 307 redirect αντί για το
+  αναμενόμενο status code αν χτυπήσεις το λάθος path με `curl` (δεν
+  ακολουθεί redirects by default χωρίς `-L`)

@@ -8,6 +8,7 @@ from app.api.auth import router as auth_router
 from app.api.negotiation_analysis import router as negotiation_analysis_router
 from app.api.analytics import router as analytics_router
 from app.api.synthesis import router as synthesis_router
+from app.api.compare import router as compare_router
 from app.services.country import CountryNotFoundError, DuplicateCountryNameError
 from app.services.indicator import IndicatorNotFoundError, CountryForIndicatorNotFoundError
 from app.services.negotiation_event import (
@@ -15,7 +16,7 @@ from app.services.negotiation_event import (
 )
 from app.services.user import EmailAlreadyRegisteredError, InvalidCredentialsError
 from app.services.negotiation_analysis import (
-    NegotiationAnalysisNotFoundError, EventForAnalysisNotFoundError
+    NegotiationAnalysisNotFoundError, EventForAnalysisNotFoundError, IdenticalComparisonEventsError
 )
 from app.services.llm_client import LLMCallError
 
@@ -28,6 +29,7 @@ app.include_router(auth_router)
 app.include_router(negotiation_analysis_router)
 app.include_router(analytics_router)
 app.include_router(synthesis_router)
+app.include_router(compare_router)
 
 
 @app.exception_handler(CountryNotFoundError)
@@ -83,6 +85,11 @@ def handle_analysis_not_found(request: Request, exc: NegotiationAnalysisNotFound
 @app.exception_handler(EventForAnalysisNotFoundError)
 def handle_event_for_analysis_not_found(request: Request, exc: EventForAnalysisNotFoundError) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+
+@app.exception_handler(IdenticalComparisonEventsError)
+def handle_identical_comparison_events(request: Request, exc: IdenticalComparisonEventsError) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
 
 
 @app.exception_handler(LLMCallError)
