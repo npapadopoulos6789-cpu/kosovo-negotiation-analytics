@@ -48,6 +48,7 @@ per-event Q&A, πραγματικά live-δοκιμασμένα) + 3ο previous_
   analytics/synthesis (τα LLM calls επιβεβαιώθηκαν live/χειροκίνητα) |
 | Docker Compose πλήρες stack (api + frontend services) | ❌ — μόνο `db` υπάρχει |
 | README.md (ο άνθρωπος-αναγνώστης) | ❌ — δεν έχει γραφτεί ακόμα |
+| **Actors feature** (SUPPORTER role, role_description, China/India/OSCE/ICJ, `GET /countries/{id}/events`) | ❌ — προτεινόμενο, βλ. #8 παρακάτω |
 | Frontend (React dashboard) | ❌ — δεν υπάρχει καν ο φάκελος |
 
 Λεπτομέρειες/ανοιχτά ζητήματα (World Bank data sourcing vs ΧΡΥΣΟ ΚΑΝΟΝΑ, analytics
@@ -124,9 +125,57 @@ Window Score (`find_optimal_mutual_compromise_period`, `find_best_moments`)
 2023, 2 events ανέβηκαν σε HIGH confidence). Λεπτομέρειες/πραγματικές τιμές
 στο PROJECT_STATUS.md.
 
-### 8. Frontend (React dashboard)
+### 8. Actors feature ❌ ΠΡΟΤΕΙΝΟΜΕΝΟ, δεν έχει ξεκινήσει
+Πρόταση από την εξαγωγή δρώντων της διπλωματικής (κεφ. 3.1+3.2, βλ.
+[SEED_SOURCE.md](SEED_SOURCE.md) ενότητες 1/4/5/7 για τα raw δεδομένα). Στόχος:
+αναδείξει ΠΟΙΟΣ δρώντας κρατούσε τη μόχλευση σε κάθε event (κρίσιμο για το
+`/compare`, βλ. SEED_SOURCE.md §7 "μετατόπιση τύπου ισχύος").
+
+Βήματα (σειρά προτεραιότητας):
+1. **Νέος ρόλος `SUPPORTER`** στο `ParticipantRole` enum (μαζί με `PARTY`,
+   `MEDIATOR`, `GUARANTOR`). Χωρίς αυτόν δεν αποτυπώνεται η γεωπολιτική
+   στήριξη χωρίς συμμετοχή στο τραπέζι (π.χ. Russia/China SUPPORTER(Serbia)
+   μέσω απειλής βέτο, χωρίς να "μεσολαβούν"). Migration.
+2. **Νέο πεδίο `role_description`** (Text, nullable) στο `Country` model —
+   μικρό migration. Seed content έτοιμο στο SEED_SOURCE.md §5.
+3. **Νέοι δρώντες στο seed** (επιβεβαιωμένα λείπουν σήμερα): China (ήδη
+   Country row αλλά 0 event_participants), India, OSCE, ICJ.
+4. **Ενημέρωση `event_participants`** με τα SUPPORTER links του SEED_SOURCE.md
+   §4 (π.χ. Russia/China SUPPORTER σε Rambouillet, Ψήφισμα 1244, Ahtisaari,
+   UDI, Ουάσιγκτον, Οχρίδα — κανένα από αυτά τα links δεν υπάρχει σήμερα).
+5. **Endpoint** `GET /countries/{id}/events` — events ενός δρώντα με τον ρόλο
+   του σε καθένα. Δεν υπάρχει σήμερα κανένα "events by participant" query σε
+   repository/service/router (επιβεβαιωμένο, session 2026-08-05).
+6. **LLM context**: το synthesis/compare context να συμπεριλάβει τα
+   SUPPORTER links + το SEED_SOURCE.md §7, ώστε το LLM να αναδεικνύει τη
+   μετατόπιση στρατιωτική→οικονομική μόχλευση.
+7. **Frontend**: badges ανά ρόλο στην οθόνη event· κλικ σε δρώντα →
+   `role_description` + λίστα events· χρωματισμός ανά `geopolitical_bloc`.
+
+### 9. Frontend (React dashboard)
 Ξεκινάει αφού το API έχει τουλάχιστον Country + Indicator + NegotiationEvent +
 Power Index endpoints σταθερά, ώστε να μη χρειάζεται ανασχεδιασμός contracts.
+
+**Οθόνη Συμπερασμάτων — ιδέες οπτικοποίησης** (μεταφέρθηκε από πρώην
+`SEED_DATA_SPEC.md` §5). Τέσσερις ενότητες, καθεμία δεμένη με υπολογισμένο
+δεδομένο, όχι στατικό κείμενο:
+1. **Ασυμμετρία BATNA** — Το Κόσοβο δεν διαθέτει ανεξάρτητη εναλλακτική· η
+   ισχύς του είναι δανεική από τη Δύση. *Οπτικοποίηση:* Power Index breakdown
+   ανά component (economic/military/social).
+2. **Μετασχηματισμός της σερβικής ισχύος** — Από στρατιωτική (προ-1999) σε
+   διπλωματική/οικονομική (μετά το 2008). *Οπτικοποίηση:* stacked area chart
+   των τριών components της Σερβίας διαχρονικά.
+3. **Η ZOPA διευρύνεται, η εφαρμογή αποτυγχάνει** — το κεντρικό παράδοξο (βλ.
+   PROJECT_STATUS.md, ενότητα "Validation tests P1-P5").
+4. **Το πολιτικό κόστος υπερισχύει του οικονομικού** — Two-level game
+   (Putnam): οι εσωτερικές πιέσεις περιορίζουν το win-set. *Οπτικοποίηση:*
+   Freedom House score δίπλα στο Window Score — η πτώση του δημοκρατικού
+   δείκτη συμπίπτει με τις αποτυχίες εφαρμογής.
+
+Επιπλέον ιδέα από το ίδιο σημείωμα: γράφημα με δύο γραμμές — `Window Score`
+(πότε ήταν κατάλληλη η στιγμή) vs `Implementation Success` (0-1, πόσο
+εφαρμόστηκε η συμφωνία) — η απόκλιση των δύο γραμμών είναι η οθόνη
+Συμπερασμάτων.
 
 ---
 
