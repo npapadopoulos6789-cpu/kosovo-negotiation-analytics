@@ -11,6 +11,7 @@ class CountryBase(BaseModel):
     geopolitical_bloc: Optional[GeopoliticalBloc] = None
     recognized_kosovo: Optional[bool] = None
     country_code: Optional[str] = Field(None, max_length=3)
+    role_description: Optional[str] = None
 
 
 class CountryCreate(CountryBase):
@@ -23,6 +24,7 @@ class CountryUpdate(BaseModel):
     geopolitical_bloc: Optional[GeopoliticalBloc] = None
     recognized_kosovo: Optional[bool] = None
     country_code: Optional[str] = Field(None, max_length=3)
+    role_description: Optional[str] = None
 
 
 class CountryRead(CountryBase):

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Boolean, Enum, Text
 import enum
 
 from app.core.database import Base
@@ -26,3 +26,8 @@ class Country(Base):
     geopolitical_bloc = Column(Enum(GeopoliticalBloc), nullable=True)
     recognized_kosovo = Column(Boolean, nullable=True)
     country_code = Column(String(3), nullable=True)
+
+    # Παράφραση ρόλου από τη διπλωματική (κεφ. 3.2) -- π.χ. ο ρόλος της
+    # Ρωσίας ως στρατηγικού συμμάχου της Σερβίας. NULL για Serbia/Kosovo
+    # (κύρια μέρη, ο ρόλος τους περιγράφεται ήδη πλήρως από τα events).
+    role_description = Column(Text, nullable=True)

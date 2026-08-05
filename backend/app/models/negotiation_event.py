@@ -26,6 +26,7 @@ class ParticipantRole(str, enum.Enum):
     PARTY = "PARTY"
     MEDIATOR = "MEDIATOR"
     GUARANTOR = "GUARANTOR"
+    SUPPORTER = "SUPPORTER"
 
 
 class NegotiationEvent(Base):
@@ -77,10 +78,16 @@ class EventParticipant(Base):
     country_id = Column(Integer, ForeignKey("countries.id"), nullable=False)
     role = Column(Enum(ParticipantRole), nullable=False)
 
+    # Μόνο για role=SUPPORTER: ποιον δρώντα στηρίζει (π.χ. Russia SUPPORTER
+    # με supports_country_id=Serbia.id). NULL για PARTY/MEDIATOR/GUARANTOR,
+    # όπου δεν βγάζει νόημα η έννοια "υποστηρίζει".
+    supports_country_id = Column(Integer, ForeignKey("countries.id"), nullable=True)
+
     event = relationship("NegotiationEvent", back_populates="participants")
     # Σύνδεση και προς το Country -- έτσι μπορούμε εύκολα να διαβάσουμε
     # participant.country.name χωρίς επιπλέον query
-    country = relationship("Country")
+    country = relationship("Country", foreign_keys=[country_id])
+    supports_country = relationship("Country", foreign_keys=[supports_country_id])
 
     @property
     def country_name(self) -> str:

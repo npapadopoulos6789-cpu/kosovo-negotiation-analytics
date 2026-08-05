@@ -12,6 +12,9 @@ class ParticipantCreate(BaseModel):
     """Ένας participant, όπως τον στέλνει ο χρήστης κατά τη δημιουργία event."""
     country_id: int
     role: ParticipantRole
+    # Μόνο για role=SUPPORTER: ποιον δρώντα στηρίζει. None για τους
+    # υπόλοιπους ρόλους (δεν βγάζει νόημα η έννοια "υποστηρίζει").
+    supports_country_id: Optional[int] = None
 
 
 class ParticipantRead(BaseModel):
@@ -24,6 +27,7 @@ class ParticipantRead(BaseModel):
     country_name: str    # ΔΕΝ υπάρχει τέτοιο πεδίο στο model -- θα το
                           # "φτιάξουμε" στο service, βλ. παρακάτω
     role: ParticipantRole
+    supports_country_id: Optional[int] = None
 
 
 class NegotiationEventBase(BaseModel):

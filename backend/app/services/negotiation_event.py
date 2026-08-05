@@ -35,9 +35,16 @@ def _validate_weights(economic: int, military: int, social: int) -> None:
 
 def _validate_participant_countries(db: Session, participants_data: list) -> None:
     for p in participants_data:
-        country_id = p["country_id"] if isinstance(p, dict) else p.country_id
+        if isinstance(p, dict):
+            country_id = p["country_id"]
+            supports_country_id = p.get("supports_country_id")
+        else:
+            country_id = p.country_id
+            supports_country_id = p.supports_country_id
         if country_repository.get_by_id(db, country_id) is None:
             raise CountryForParticipantNotFoundError(country_id)
+        if supports_country_id is not None and country_repository.get_by_id(db, supports_country_id) is None:
+            raise CountryForParticipantNotFoundError(supports_country_id)
 
 
 def list_events(db: Session) -> list[NegotiationEvent]:
