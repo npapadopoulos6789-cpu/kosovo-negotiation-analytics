@@ -3,7 +3,8 @@ import { Layout } from "./components/Layout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ActorsPage } from "./pages/ActorsPage";
 import { ActorDetailPage } from "./pages/ActorDetailPage";
-import { EventsPage } from "./pages/EventsPage";
+import { EventsListPage } from "./pages/EventsListPage";
+import { EventDetailPage } from "./pages/EventDetailPage";
 import { SynthesisPage } from "./pages/SynthesisPage";
 import { ComparePage } from "./pages/ComparePage";
 
@@ -14,7 +15,8 @@ function App() {
         <Route index element={<DashboardPage />} />
         <Route path="actors" element={<ActorsPage />} />
         <Route path="actors/:id" element={<ActorDetailPage />} />
-        <Route path="events" element={<EventsPage />} />
+        <Route path="events" element={<EventsListPage />} />
+        <Route path="events/:id" element={<EventDetailPage />} />
         <Route path="synthesis" element={<SynthesisPage />} />
         <Route path="compare" element={<ComparePage />} />
       </Route>
