@@ -5,6 +5,7 @@ import { PowerIndexBreakdownChart } from "../components/charts/PowerIndexBreakdo
 import { SerbiaPowerTransformationChart } from "../components/charts/SerbiaPowerTransformationChart";
 import { PoliticalVsEconomicCostChart } from "../components/charts/PoliticalVsEconomicCostChart";
 import { WindowScoreVsImplementationChart } from "../components/charts/WindowScoreVsImplementationChart";
+import { Glossary } from "../components/Glossary";
 import { LoadingState, ErrorState, EmptyState } from "../components/ui";
 
 export function DashboardPage() {
@@ -16,8 +17,16 @@ export function DashboardPage() {
   return (
     <div>
       <h1>Dashboard</h1>
+      <p>
+        This platform pairs quantitative power indicators -- Power Index and Window Score,
+        computed from real economic, military, and social data -- with the qualitative findings
+        of a thesis on the Serbia-Kosovo negotiations. Use the charts below to explore
+        interactively when, and why, conditions were (or weren't) ripe for agreement.
+      </p>
 
-      <h2>ZOPA size vs. implementation success</h2>
+      <Glossary />
+
+      <h2 style={{ marginTop: "2rem" }}>ZOPA size vs. implementation success</h2>
       <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
         Does a wider Zone of Possible Agreement predict a better-implemented outcome? Only events
         that reached an agreement (implementation_success recorded) are shown.
