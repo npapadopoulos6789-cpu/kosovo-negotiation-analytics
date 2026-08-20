@@ -172,3 +172,18 @@ export interface CompareAnswer {
   answer_certainty: AnswerCertainty;
   data_gaps_noted: string[];
 }
+
+// ---------- Analytics (ντετερμινιστικοί δείκτες ισχύος, βλ. CLAUDE.md) ----------
+// ΠΡΟΣΟΧΗ: αυτά ΔΕΝ είναι Pydantic schemas -- τα /analytics endpoints
+// επιστρέφουν plain dict (βλ. backend/app/api/analytics.py), όχι
+// response_model. Τα τύποι εδώ αντιγράφουν το ακριβές shape του dict.
+
+// Αντιστοιχεί στο response του GET /analytics/power-index-breakdown/{country_id}/{year}
+export interface PowerIndexBreakdown {
+  country_id: number;
+  year: number;
+  economic: number;
+  military: number;
+  social: number;
+  power_index: number;
+}

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { listNegotiationEvents } from "../api/negotiationEvents";
 import { ZopaImplementationChart } from "../components/charts/ZopaImplementationChart";
+import { PowerIndexBreakdownChart } from "../components/charts/PowerIndexBreakdownChart";
 import { LoadingState, ErrorState, EmptyState } from "../components/ui";
 
 export function DashboardPage() {
@@ -24,6 +25,13 @@ export function DashboardPage() {
         <EmptyState label="No events with recorded implementation_success yet." />
       )}
       {events && <ZopaImplementationChart events={events} />}
+
+      <h2 style={{ marginTop: "2rem" }}>Power Index breakdown</h2>
+      <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
+        Economic (40%) / Military (40%) / Social (20%) components of the Power Index, Serbia vs.
+        Kosovo. Only years with indicator data for both countries are selectable.
+      </p>
+      <PowerIndexBreakdownChart />
     </div>
   );
 }
