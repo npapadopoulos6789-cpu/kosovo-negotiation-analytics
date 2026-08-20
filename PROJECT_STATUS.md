@@ -45,10 +45,13 @@ _wrapper, ΧΩΡΙΣ path-normalization λογική -- βλ. σημείωση �
 _`api/countries.ts` (πλήρες CRUD), `hooks/useCountryLookup.ts` (react-query,_
 _Map<id, Country>, memoized). `pytest -q` στο `backend/`: **25/25 unit_
 _analytics tests passed** (δεν ξανατρέχτηκε ολόκληρο το suite σήμερα)._
-_`tsc --noEmit` καθαρό στα νέα frontend αρχεία. Τελευταίο pushed commit:_
-_`9e4d667` ("Stop tracking __pycache__, add to gitignore"). `frontend/src/api/`_
-_και `frontend/src/hooks/` είναι ΑΚΟΜΑ uncommitted -- δεν έχει γίνει commit_
-_αυτού του session's frontend δουλειάς._
+_`tsc --noEmit` καθαρό στα νέα frontend αρχεία. (6) `QueryClientProvider`_
+_στηθεί στο `main.tsx` (ένα QueryClient σε module scope, τυλίγει το <App/>_
+_μέσα στο StrictMode) -- το `useCountryLookup` είναι πλέον λειτουργικό_
+_end-to-end, επιβεβαιωμένο με `tsc --noEmit` + dev server smoke test (200_
+_OK στο :5173). Τελευταίο pushed commit: `cb9ea97` ("Add API client layer_
+_for Country resource"). `frontend/src/main.tsx` (QueryClientProvider) είναι_
+_ΑΚΟΜΑ uncommitted._
 
 **Frontend trailing-slash gotcha (κρίσιμο, μη το ξαναχάσεις):** το backend_
 _ΔΕΝ έχει ενιαία σύμβαση. `/countries` (list/create) ΧΩΡΙΣ trailing slash,_
@@ -59,9 +62,10 @@ _reference table είναι στο σχόλιο στο τέλος του `fronte
 _Κάθε επόμενο resource module πρέπει να κοιτάξει το αντίστοιχο_
 _`backend/app/api/*.py`, όχι να υποθέσει._
 
-**Ακόμα δεν έγινε (frontend):** `QueryClientProvider` setup στο `main.tsx`_
-_(το `useCountryLookup` θα σκάσει χωρίς αυτό), routing, layout, resource_
-_modules για Indicator/NegotiationEvent/Analytics/Synthesis, κανένα UI component._
+**Ακόμα δεν έγινε (frontend):** routing (react-router-dom είναι installed,_
+_δεν έχει στηθεί), layout, resource modules για Indicator/NegotiationEvent/_
+_Analytics/Synthesis, κανένα UI component ακόμα (μόνο το default Vite_
+_starter page στο App.tsx).
 
 ### Infrastructure
 - venv, πλήρης δομή φακέλων (`models/schemas/repositories/services/api/core`)
