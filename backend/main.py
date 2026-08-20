@@ -23,12 +23,17 @@ from app.services.llm_client import LLMCallError
 
 app = FastAPI()
 
-# Επιτρέπει στο React dev server (:5173) να καλεί αυτό το API (:8000) --
-# χωρίς αυτό ο browser μπλοκάρει τα requests πριν καν φτάσουν στο FastAPI
+# Επιτρέπει στο React dev server να καλεί αυτό το API (:8000) -- χωρίς
+# αυτό ο browser μπλοκάρει τα requests πριν καν φτάσουν στο FastAPI
 # (browser-level block, όχι network error στο backend log).
+# allow_origin_regex αντί για σταθερό allow_origins=["http://localhost:5173"]:
+# το Vite dev server αλλάζει port όποτε το 5173 είναι κατειλημμένο (5174,
+# 5186, ...), οπότε ένα σταθερό port έσπαγε το CORS κάθε τόσο. Ο regex
+# περιορίζεται ρητά σε localhost (οποιοδήποτε port) -- ασφαλές για dev,
+# ΔΕΝ επιτρέπει κανένα εξωτερικό domain.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origin_regex=r"http://localhost:\d+",
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=False,
