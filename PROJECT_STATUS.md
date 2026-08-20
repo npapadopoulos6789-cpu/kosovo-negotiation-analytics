@@ -147,9 +147,46 @@ of the user's question" -- ΜΙΑ γραμμή στο `SHARED_PREAMBLE`, καλ�
    συμφωνημένα πριν το submit. Καμία αλλαγή κώδικα χρειάστηκε μετά τα
    tests -- όλα δούλεψαν καθαρά με την πρώτη.
 
+8. ✅ **Dashboard -- 5/5 charts, όλο το backlog αυτού του κομματιού
+   ολοκληρώθηκε (2026-08-20).** `recharts` (ήδη εγκατεστημένο από το
+   scaffold, ποτέ χρησιμοποιημένο πριν) -- κάθε chart self-contained
+   component σε `components/charts/`, η σελίδα απλά τα mount-άρει:
+   1. **ZOPA vs implementation success** -- bar, χρώμα ανά ZOPA size
+      (grey-scale, όχι traffic-light)
+   2. **Power Index breakdown** -- grouped bar Serbia/Kosovo, year
+      selector (2005/2007/2013/2023, μόνα τα έτη με πλήρη δεδομένα και
+      για τις δύο χώρες)
+   3. **Serbia's power transformation** -- stacked bar (ΟΧΙ line/area,
+      ρητή απόφαση -- 10 υποψήφια έτη, μόνο 4 έχουν δεδομένα, μια γραμμή
+      θα υπονοούσε συνέχεια που δεν υπάρχει), με ρητή διευκρίνιση ότι το
+      stack height δεν είναι το ίδιο το Power Index (raw sum, όχι
+      σταθμισμένο 40/40/20)
+   4. **Political vs economic cost** -- line chart (επιτρεπτό εδώ, ίδια
+      0-100 κλίμακα), Serbia/Kosovo Freedom House + Window Score,
+      `connectNulls={false}` ρητά
+   5. **Window Score vs implementation success** -- το "punchline" chart:
+      δείχνει οπτικά ότι 2013/2023 είχαν υψηλό Window Score αλλά χαμηλή
+      εφαρμογή. Ρητή ετικέτα "×100 for display" (διαφορετικές κλίμακες,
+      κανένα σιωπηλό rescale)
+
+   `analytics.ts` resource module χτίστηκε σταδιακά: `getPowerIndexBreakdown`
+   → `getWindowScore`. Κάθε 404 ("Insufficient data") γίνεται `EmptyState`,
+   ΠΟΤΕ `ErrorState` -- επιβεβαιωμένο εμπειρικά με curl πριν από κάθε chart
+   ποια έτη γυρνάνε 404. **Δύο πραγματικά bugs εντοπίστηκαν και
+   διορθώθηκαν στην πορεία** (και τα δύο μέσω πραγματικού browser session
+   με προσωρινό Playwright+system Edge, όχι μόνο static screenshot --
+   βρέθηκε ότι το static `msedge --headless --screenshot` CLI δεν
+   αποδίδει καθόλου recharts `ResponsiveContainer` bars, tooling artifact
+   όχι bug):
+   - duplicate React key (`Cell key={row.label}` όπου δύο events
+     μοιράζονταν το ίδιο year-label) -- διορθώθηκε σε `event.id`
+   - χρώμα Window Score line αρχικά κόκκινο, έσπαγε την καθιερωμένη
+     navy/γκρι ακαδημαϊκή παλέτα -- διορθώθηκε σε γκρι + dashed pattern
+   Κάθε chart: δικό του commit, `tsc --noEmit` + πραγματικό browser
+   verification πριν από κάθε commit.
+
 **Ακόμα δεν έγινε (backlog, ενημερωμένο 2026-08-20):**
-- ❌ Dashboard με τα analytics charts (το route υπάρχει μόνο ως placeholder)
-- ❌ `analytics.ts` resource module (Power Index/Gap/Window Score/Optimal Periods)
+- ❌ Polish pass (γενική επισκόπηση/καθάρισμα πριν το τέλος)
 - ❌ Docker Compose πλήρες stack (api+frontend services· σήμερα μόνο `db`)
 - ❌ README.md (δεν έχει γραφτεί -- το CLAUDE.md λέει ρητά ότι ο άνθρωπος-αναγνώστης διαβάζει αυτό, όχι το CLAUDE.md)
 
