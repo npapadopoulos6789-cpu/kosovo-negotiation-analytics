@@ -33,15 +33,27 @@
 | Russia | STATE | EAST | false | Serbia |
 | China ⚠ | STATE | EAST | false | Serbia |
 | Albania | STATE | WEST | true | Kosovo |
-| India ⚠ | STATE | NEUTRAL | false | (μη-αναγνώριση 2008) |
+| India | STATE | NEUTRAL | false | (μη-αναγνώριση 2008) |
 | NATO | MILITARY_ALLIANCE | WEST | — | Kosovo (ασφάλεια) |
 | United Nations (UNMIK) | INTERNATIONAL_ORG | NEUTRAL | — | ουδέτερος |
-| OSCE / ΟΑΣΕ ⚠ | INTERNATIONAL_ORG | NEUTRAL | — | ουδέτερος (εκλογές) |
-| ICJ ⚠ (προαιρετικό) | INTERNATIONAL_ORG | NEUTRAL | — | ουδέτερος (γνωμ. 2010) |
+| OSCE / ΟΑΣΕ | INTERNATIONAL_ORG | NEUTRAL | — | ουδέτερος (εκλογές) |
+| ICJ (προαιρετικό) | INTERNATIONAL_ORG | NEUTRAL | — | ουδέτερος (γνωμ. 2010) |
 
-⚠ = επιβεβαιωμένα ΔΕΝ υπάρχουν στη σημερινή βάση (`seed.py` seed-άρει μόνο
-Serbia, Kosovo, USA, EU, Russia, China, NATO, UN, Albania — 9 από τους 11· China
-υπάρχει ως Country row αλλά χωρίς κανένα `event_participants` link, βλ. ενότητα 4).
+**Ενημέρωση 2026-08-20:** India, OSCE, ICJ προστέθηκαν πλέον στο `seed.py`
+(και τα 12 Country rows -- Serbia/Kosovo + 10 -- seed-άρονται από το script,
+`role_description` για όλους τους μη-πρωταγωνιστές). ⚠ = παραμένει μόνο για
+China: υπάρχει ως Country row αλλά χωρίς κανένα `event_participants` link
+(βλ. ενότητα 4) -- αυτό δεν άλλαξε.
+
+**Γλώσσα δεδομένων (2026-08-20):** όλα τα πεδία δεδομένων (description,
+batna, red_lines, zopa/ripeness reasoning, role_description, indicator
+source) είναι πλέον στα Αγγλικά -- μεταφράστηκαν από το πρωτότυπο Ελληνικό
+κείμενο της διπλωματικής χωρίς αλλαγή νοήματος/αριθμών/ημερομηνιών, γιατί
+το UI του frontend είναι στα Αγγλικά. Αυτό το ίδιο το SEED_SOURCE.md
+παραμένει Ελληνικό (dev-facing τεκμηρίωση, τα quotes παρακάτω στο έγγραφο
+είναι το πρωτότυπο Ελληνικό κείμενο πριν τη μετάφραση -- ΔΕΝ ενημερώθηκαν
+retroactively, βλ. `backend/app/scripts/seed.py` για τις τρέχουσες Αγγλικές
+τιμές).
 
 **Modeling σημείωση (από το πρωτότυπο):** KFOR/UNMIK/EULEX είναι *αποστολές* του
 NATO/UN/EU αντίστοιχα, ΟΧΙ ξεχωριστοί δρώντες — μοντελοποιούνται ως ρόλος του

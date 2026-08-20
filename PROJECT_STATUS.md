@@ -49,9 +49,31 @@ _`tsc --noEmit` καθαρό στα νέα frontend αρχεία. (6) `QueryClie
 _στηθεί στο `main.tsx` (ένα QueryClient σε module scope, τυλίγει το <App/>_
 _μέσα στο StrictMode) -- το `useCountryLookup` είναι πλέον λειτουργικό_
 _end-to-end, επιβεβαιωμένο με `tsc --noEmit` + dev server smoke test (200_
-_OK στο :5173). Τελευταίο pushed commit: `cb9ea97` ("Add API client layer_
-_for Country resource"). `frontend/src/main.tsx` (QueryClientProvider) είναι_
-_ΑΚΟΜΑ uncommitted._
+_OK στο :5173, screenshot με headless Edge -- 12 πραγματικές χώρες)._
+_(7) automated test `useCountryLookup.test.tsx` (vitest + jsdom +_
+_@testing-library/react, mocked `global.fetch`, 3 tests: Map size/keys/_
+_values, loading state, exact `/countries` path). (8) Docker Desktop_
+_ξεκίνησε (δεν έτρεχε καθόλου) + `docker compose up -d db` -- πλήρες_
+_`pytest -q` επιβεβαιωμένο: **87 passed, 0 failed** (ανέβηκε από 82 λόγω_
+_compare/breakdown tests μετά τις 2026-08-04). (9) **Data-language_
+_migration**: όλα τα data fields (`description`, `batna_side_a/b`,_
+_`red_lines_side_a/b`, `zopa_reasoning`, `ripeness_reasoning`,_
+_`role_description`, indicator `source`) μεταφράστηκαν Ελληνικά→Αγγλικά_
+_στο `backend/app/scripts/seed.py` (νόημα/αριθμοί/ημερομηνίες αμετάβλητα)._
+_Παράλληλα διορθώθηκε ένα προϋπάρχον drift: India/OSCE/ICJ + το_
+_`role_description` όλων των μη-πρωταγωνιστών (USA/EU/Russia/China/NATO/_
+_UN/Albania) υπήρχαν ήδη στη ΒΔ αλλά ΔΕΝ ήταν στο committed `seed.py`_
+_(προστέθηκαν εκτός script σε προηγούμενο session) -- τώρα και τα 12_
+_Country rows seed-άρονται σωστά. Dev DB: `TRUNCATE ... CASCADE` +_
+_`python -m app.scripts.seed` ξανά, επιβεβαιώθηκε με SQL regex query ότι_
+_ΔΕΝ απομένει Ελληνικό κείμενο σε κανένα data field, `pytest -q` ξανά_
+_87/87 μετά το reseed. Ένα παλιό test `negotiation_analyses` row_
+_(2026-08-04 [COMPARE] test) καθαρίστηκε μαζί με το truncate -- ήταν ήδη_
+_dangling test artifact. Τεκμηριώθηκε στο SEED_SOURCE.md (§ δρώντων +_
+_νέα ενότητα "Γλώσσα δεδομένων"). Τελευταίο pushed commit: `cb9ea97`_
+_("Add API client layer for Country resource"). `frontend/src/main.tsx`,_
+_`useCountryLookup.test.tsx`, τα vitest devDependencies, και το_
+_`backend/app/scripts/seed.py` είναι ΑΚΟΜΑ uncommitted._
 
 **Frontend trailing-slash gotcha (κρίσιμο, μη το ξαναχάσεις):** το backend_
 _ΔΕΝ έχει ενιαία σύμβαση. `/countries` (list/create) ΧΩΡΙΣ trailing slash,_
@@ -62,10 +84,28 @@ _reference table είναι στο σχόλιο στο τέλος του `fronte
 _Κάθε επόμενο resource module πρέπει να κοιτάξει το αντίστοιχο_
 _`backend/app/api/*.py`, όχι να υποθέσει._
 
-**Ακόμα δεν έγινε (frontend):** routing (react-router-dom είναι installed,_
-_δεν έχει στηθεί), layout, resource modules για Indicator/NegotiationEvent/_
-_Analytics/Synthesis, κανένα UI component ακόμα (μόνο το default Vite_
-_starter page στο App.tsx).
+**Ακόμα δεν έγινε (πλήρες backlog, 2026-08-20):**
+- ❌ Routing (react-router-dom είναι installed, δεν έχει στηθεί)
+- ❌ Layout / UI components (`App.tsx` ακόμα το default Vite starter)
+- ❌ Resource modules: Indicator, NegotiationEvent, Analytics, Synthesis (μόνο Country έγινε)
+- ❌ Shared primitives (Card/Badge/Loading/Error/Empty)
+- ❌ Σελίδες: Actors, Events, Synthesis, Compare, Dashboard
+- ❌ Docker Compose πλήρες stack (api+frontend services· σήμερα μόνο `db`)
+- ❌ README.md (δεν έχει γραφτεί -- το CLAUDE.md λέει ρητά ότι ο άνθρωπος-αναγνώστης διαβάζει αυτό, όχι το CLAUDE.md)
+
+**UI-labeling απόφαση (2026-08-20, ρητή -- μη το ξαναμπερδέψεις):** το_
+_backend model λέγεται `Country` αλλά περιέχει και μη-κρατικούς δρώντες_
+_μέσω του `actor_type` (NATO/UN/EU/OSCE/ICJ κ.λπ. -- design decision ήδη_
+_παρμένη, βλ. CLAUDE.md "Country (καλύπτει και τους διεθνείς δρώντες)")._
+_Το backend/model/schema/router ΔΕΝ αλλάζουν -- παραμένουν `Country`/_
+_`/countries`. Μόνο στο **frontend UI-facing κείμενο** (route label,_
+_navbar/menu, page title) χρησιμοποιούμε **"Actors"**, όχι "Countries",_
+_ώστε να μην μπερδεύει τον χρήστη βλέποντας "Countries" δίπλα σε NATO/UN._
+_Route path: **`/actors`** (όχι `/countries`) -- το frontend route δεν_
+_έχει λόγο να αντιγράφει το internal model/API name, είναι δική του_
+_information architecture. Γλώσσα UI: **English** (labels/navbar/κουμπιά/_
+_μηνύματα) -- επιβεβαιώθηκε ρητά με τον χρήστη 2026-08-20, το CLAUDE.md_
+_παραμένει ελληνικό (agent-facing), το README.md ό,τι ήταν ήδη._
 
 ### Infrastructure
 - venv, πλήρης δομή φακέλων (`models/schemas/repositories/services/api/core`)

@@ -2,6 +2,13 @@
 Seed script -- γεμίζει τη ΒΔ με τα δεδομένα της διπλωματικής.
 Τρέχεται με: python -m app.scripts.seed
 
+ΣΗΜΕΙΩΣΗ ΓΛΩΣΣΑΣ (2026-08-20): όλες οι τιμές πεδίων (description, batna,
+red_lines, zopa/ripeness reasoning, role_description, source) είναι στα
+ΑΓΓΛΙΚΑ -- απόφαση με τον χρήστη, το UI του frontend είναι στα αγγλικά.
+Μεταφράστηκαν από το αρχικό ελληνικό κείμενο της διπλωματικής χωρίς αλλαγή
+νοήματος/αριθμών/ημερομηνιών. Τα σχόλια αυτού του αρχείου παραμένουν
+ελληνικά (dev-facing, όπως το CLAUDE.md).
+
 ΠΗΓΕΣ:
 - Economic (GDP growth, unemployment), Serbia: World Bank API, πραγματικά,
   confidence=EXACT (ακριβής δημοσιευμένη τιμή -- βλ. απόφαση 2026-08-02)
@@ -20,6 +27,12 @@ Seed script -- γεμίζει τη ΒΔ με τα δεδομένα της διπ
 10 negotiation events (E1-E10) όπως περιγράφονται στο SEED_DATA_SPEC.md §3
 (υιοθετήθηκαν 2026-08-02, αντικατέστησαν τα αρχικά 7 -- βλ. PROJECT_STATUS.md
 για το πλήρες change-log αυτής της αναθεώρησης).
+
+Χώρες/δρώντες India, OSCE, ICJ + τα role_description όλων των μη-πρωταγωνιστών
+(USA/EU/Russia/China/NATO/UN/Albania) προστέθηκαν στο script 2026-08-20 --
+υπήρχαν ήδη στην τρέχουσα ΒΔ (προστέθηκαν εκτός seed.py σε προηγούμενο
+session, ΔΕΝ ήταν καταγεγραμμένα εδώ) βλ. SEED_SOURCE.md για το αναλυτικό
+per-event breakdown δρώντων/ρόλων που τεκμηριώνει τις τιμές αυτές.
 
 FUTURE WORK (αποφασίστηκε ρητά να ΜΗΝ μπουν τώρα, βλ. SEED_DATA_SPEC.md
 ενότητες 2.1-2.4 για τα πλήρη στοιχεία όταν χρειαστεί):
@@ -46,25 +59,90 @@ from app.schemas.negotiation_event import NegotiationEventCreate, ParticipantCre
 
 
 def seed_countries(db):
+    # role_description=None για Serbia/Kosovo -- κύρια μέρη, ο ρόλος τους
+    # περιγράφεται ήδη πλήρως από τα events (βλ. CLAUDE.md).
     countries_data = [
-        ("Serbia", "STATE", "EAST", False, "SRB"),
-        ("Kosovo", "STATE", "WEST", None, "XKX"),
-        ("USA", "STATE", "WEST", True, "USA"),
-        ("EU", "INTERNATIONAL_ORG", "EU", True, None),
-        ("Russia", "STATE", "EAST", False, "RUS"),
-        ("China", "STATE", "EAST", False, "CHN"),
-        ("NATO", "MILITARY_ALLIANCE", "WEST", None, None),
-        ("UN", "INTERNATIONAL_ORG", "NEUTRAL", None, None),
-        ("Albania", "STATE", "WEST", True, "ALB"),
+        ("Serbia", "STATE", "EAST", False, "SRB", None),
+        ("Kosovo", "STATE", "WEST", None, "XKX", None),
+        (
+            "USA", "STATE", "WEST", True, "USA",
+            "Strategic weight in the Western Balkans; promotes Kosovo's independence and "
+            "integration into the Euro-Atlantic sphere. Tools: USAID (1.2bn, 2021-2025), "
+            "MCC (300m Serbia / 500m Kosovo for energy decoupling from Russia/China), Camp "
+            "Bondsteel, FMF/IMET. Goal: limiting Russian/Chinese influence. Leading role in "
+            "lifting the tariffs in 2019-2020 (Trump/Grenell, economic diplomacy).",
+        ),
+        (
+            "EU", "INTERNATIONAL_ORG", "EU", True, None,
+            "The most important external actor in normalization. Leverage comes from the "
+            "economic dependence of both sides (IPA III: 1.5bn Serbia / 600m Kosovo; 78% of "
+            "Serbia's FDI is European; 60% of Serbia's trade with the EU in 2023). Uses "
+            "Serbia's European perspective as a pressure tool; main mediator at Brussels and "
+            "Ohrid. Sets implementation of the Brussels Agreement as a precondition for "
+            "Kosovo's accession; internally divided (5 members -- Spain/Greece/Cyprus/"
+            "Slovakia/Romania -- do not recognize Kosovo).",
+        ),
+        (
+            "Russia", "STATE", "EAST", False, "RUS",
+            "Serbia's strongest ally in preventing recognition of Kosovo. Leverage: threat "
+            "of a UN veto, military supplier (MiG-29, Pantsir-S1), energy control (>80% of "
+            "natural gas via Gazprom, controls NIS). Backs the Serbian element in North "
+            "Mitrovica. Per the General Conclusions: exploits the dispute as leverage "
+            "against the West, using hybrid-warfare practices, blocking resolutions that "
+            "would legitimize the new status quo.",
+        ),
+        (
+            "China", "STATE", "EAST", False, "CHN",
+            "Serbia's second-largest economic partner after the EU. Does not recognize "
+            "Kosovo (linked to its stance on Taiwan, interpretation of Remedial Secession). "
+            "BRI, >10bn in loans 2010-2023, zero relations with Kosovo. Steady support for "
+            "Serbia, a deterrent role against Kosovo's entry into international "
+            "organizations.",
+        ),
+        (
+            "NATO", "MILITARY_ALLIANCE", "WEST", None, None,
+            "Present in Kosovo through KFOR since 1999; conflict deterrence, a factor of "
+            "stability. The 1999 intervention (Allied Force) that overturned Serbia's "
+            "military BATNA. Serbia views it as an occupying force, Kosovo as a security "
+            "guarantee.",
+        ),
+        (
+            "UN", "INTERNATIONAL_ORG", "NEUTRAL", None, None,
+            "UNMIK since 1999; human rights oversight, monitoring of negotiations, "
+            "coordinator of KFOR/OSCE. Resolution 1244. Commissioned the Ahtisaari plan.",
+        ),
+        (
+            "Albania", "STATE", "WEST", True, "ALB",
+            "Kosovo's strongest political ally; the first country to recognize its "
+            "independence. Joint cabinet meetings, inter-state agreements, shared national/"
+            "cultural/linguistic identity. Kosovo's GDP is partly dependent on Albanian "
+            "economic activity. Serbia views it as a destabilizing factor.",
+        ),
+        (
+            "India", "STATE", "NEUTRAL", False, "IND",
+            "Among the countries that refused to recognize independence (2008), citing "
+            "violation of national sovereignty and principles of international law.",
+        ),
+        (
+            "OSCE", "INTERNATIONAL_ORG", "NEUTRAL", None, None,
+            "Political stability through election monitoring, human rights protection, and "
+            "institutional reforms. Oversight of Kosovo's 2013 municipal elections.",
+        ),
+        (
+            "ICJ", "INTERNATIONAL_ORG", "NEUTRAL", None, None,
+            "2010 advisory opinion (Serbia's request): the declaration of independence did "
+            "not violate international law, but neither did it legitimize it.",
+        ),
     ]
 
     created = {}
-    for name, actor_type, bloc, recognized, code in countries_data:
+    for name, actor_type, bloc, recognized, code, role_description in countries_data:
         country = country_service.create_country(
             db,
             CountryCreate(
                 name=name, actor_type=actor_type, geopolitical_bloc=bloc,
                 recognized_kosovo=recognized, country_code=code,
+                role_description=role_description,
             ),
         )
         created[name] = country.id
@@ -101,7 +179,7 @@ def seed_indicators(db, country_ids: dict):
         (serbia_id, "ECONOMIC", "unemployment_rate", 2020, 9.01, "%", "World Bank API (SL.UEM.TOTL.ZS)", "EXACT"),
         (serbia_id, "ECONOMIC", "unemployment_rate", 2023, 8.27, "%", "World Bank API (SL.UEM.TOTL.ZS)", "EXACT"),
 
-        (serbia_id, "ECONOMIC", "trade_share_eu", 2023, 60.0, "%", "European Commission/IMF/Statistical Office of Serbia, Γράφημα 1.8 διπλωματικής", None),
+        (serbia_id, "ECONOMIC", "trade_share_eu", 2023, 60.0, "%", "European Commission/IMF/Statistical Office of Serbia, Thesis Chart 1.8", None),
 
         # ============ SERBIA — MILITARY (World Bank API, πηγή SIPRI, πραγματικά -- ΑΜΕΤΑΒΛΗΤΟ) ============
         (serbia_id, "MILITARY", "military_expenditure_pct_gdp", 1999, 3.53, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)", None),
@@ -112,47 +190,47 @@ def seed_indicators(db, country_ids: dict):
         (serbia_id, "MILITARY", "military_expenditure_pct_gdp", 2023, 2.21, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)", None),
 
         # ============ SERBIA — SOCIAL (Freedom House, τιμές SEED_DATA_SPEC.md §2.4) ============
-        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2005, 54.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2007, 55.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2009, 53.5, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2011, 55.5, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2013, 56.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2015, 55.5, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2017, 53.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2019, 49.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2021, 46.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2023, 43.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
+        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2005, 54.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2007, 55.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2009, 53.5, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2011, 55.5, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2013, 56.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2015, 55.5, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2017, 53.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2019, 49.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2021, 46.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2023, 43.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
 
         # ============ KOSOVO — ECONOMIC ============
         (kosovo_id, "ECONOMIC", "GDP_growth", 2013, 5.34, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)", None),
         (kosovo_id, "ECONOMIC", "GDP_growth", 2023, 4.07, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)", None),
         # 1999: δεν υπάρχει στο World Bank API (πριν το 2009) -- σκόπιμα δεν εικάζουμε
 
-        (kosovo_id, "ECONOMIC", "unemployment_rate", 2005, 41.0, "%", "ILO/World Bank Open Data, Γράφημα 1.5 διπλωματικής", None),
-        (kosovo_id, "ECONOMIC", "unemployment_rate", 2007, 46.0, "%", "ILO/World Bank Open Data, Γράφημα 1.5 διπλωματικής", None),
-        (kosovo_id, "ECONOMIC", "unemployment_rate", 2008, 48.0, "%", "ILO/World Bank Open Data, Γράφημα 1.5 διπλωματικής", None),
+        (kosovo_id, "ECONOMIC", "unemployment_rate", 2005, 41.0, "%", "ILO/World Bank Open Data, Thesis Chart 1.5", None),
+        (kosovo_id, "ECONOMIC", "unemployment_rate", 2007, 46.0, "%", "ILO/World Bank Open Data, Thesis Chart 1.5", None),
+        (kosovo_id, "ECONOMIC", "unemployment_rate", 2008, 48.0, "%", "ILO/World Bank Open Data, Thesis Chart 1.5", None),
 
-        (kosovo_id, "ECONOMIC", "trade_share_eu", 2018, 44.7, "%", "Council of the European Union 2018, Γράφημα 1.7 διπλωματικής (εισαγωγές)", None),
+        (kosovo_id, "ECONOMIC", "trade_share_eu", 2018, 44.7, "%", "Council of the European Union 2018, Thesis Chart 1.7 (imports)", None),
 
         # ============ KOSOVO — MILITARY (τεκμηριωμένη εκτίμηση -- ΑΜΕΤΑΒΛΗΤΟ) ============
-        (kosovo_id, "MILITARY", "troop_presence_index", 1999, 90.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική", None),
-        (kosovo_id, "MILITARY", "troop_presence_index", 2005, 55.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική", None),
-        (kosovo_id, "MILITARY", "troop_presence_index", 2007, 45.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική", None),
-        (kosovo_id, "MILITARY", "troop_presence_index", 2008, 40.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική", None),
-        (kosovo_id, "MILITARY", "troop_presence_index", 2013, 25.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική", None),
-        (kosovo_id, "MILITARY", "troop_presence_index", 2023, 15.0, "index_score", "Researcher estimate βάσει NATO/KFOR narrative στη διπλωματική", None),
+        (kosovo_id, "MILITARY", "troop_presence_index", 1999, 90.0, "index_score", "Researcher estimate based on the NATO/KFOR narrative in the thesis", None),
+        (kosovo_id, "MILITARY", "troop_presence_index", 2005, 55.0, "index_score", "Researcher estimate based on the NATO/KFOR narrative in the thesis", None),
+        (kosovo_id, "MILITARY", "troop_presence_index", 2007, 45.0, "index_score", "Researcher estimate based on the NATO/KFOR narrative in the thesis", None),
+        (kosovo_id, "MILITARY", "troop_presence_index", 2008, 40.0, "index_score", "Researcher estimate based on the NATO/KFOR narrative in the thesis", None),
+        (kosovo_id, "MILITARY", "troop_presence_index", 2013, 25.0, "index_score", "Researcher estimate based on the NATO/KFOR narrative in the thesis", None),
+        (kosovo_id, "MILITARY", "troop_presence_index", 2023, 15.0, "index_score", "Researcher estimate based on the NATO/KFOR narrative in the thesis", None),
 
         # ============ KOSOVO — SOCIAL (Freedom House, τιμές SEED_DATA_SPEC.md §2.4) ============
-        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2005, 27.5, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2007, 27.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2009, 30.5, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2011, 31.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2013, 29.5, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2015, 32.5, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2017, 34.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2019, 35.5, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2021, 35.5, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
-        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2023, 38.0, "index_score", "Freedom House Nations in Transit, Γράφημα 1.11 διπλωματικής", "CHART_READ"),
+        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2005, 27.5, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2007, 27.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2009, 30.5, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2011, 31.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2013, 29.5, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2015, 32.5, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2017, 34.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2019, 35.5, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2021, 35.5, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
+        (kosovo_id, "SOCIAL_UNREST", "freedom_house_score", 2023, 38.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
     ]
 
     for country_id, category, itype, year, value, unit, source, confidence in indicators:
@@ -178,17 +256,17 @@ def seed_events(db, country_ids: dict):
         # δεν αναφέρεται στο spec για αυτή την περίοδο (προ-1999)
         dict(
             title="Revocation of Kosovo's Autonomy", date="1989-03-28",
-            description="Κατάρρευση της αυτονομίας του Κοσόβου (1989) και σταδιακή κλιμάκωση "
-                        "έως το 1998: επιβολή σερβικού ελέγχου και ανάπτυξη παράλληλων "
-                        "αλβανικών δομών υπό τον Ibrahim Rugova.",
+            description="Collapse of Kosovo's autonomy (1989) and gradual escalation through "
+                        "1998: imposition of Serbian control and the development of parallel "
+                        "Albanian structures under Ibrahim Rugova.",
             zopa_size="NARROW",
-            zopa_reasoning="Οι θέσεις είναι αμοιβαία αποκλειόμενες, δεν υπάρχει επικάλυψη.",
+            zopa_reasoning="The positions are mutually exclusive; there is no overlap.",
             ripeness_status="NOT_RIPE",
-            ripeness_reasoning="Καμία πλευρά δεν θεωρεί το κόστος της σύγκρουσης υπερβολικό.",
-            batna_side_a="Στρατιωτικός έλεγχος επί του εδάφους· κρατική κυριαρχία αναγνωρισμένη διεθνώς",
-            batna_side_b="Παράλληλες δομές Ρουγκόβα· μη βίαιη αντίσταση· διεθνής προβολή του ζητήματος",
-            red_lines_side_a="Καμία μορφή ανεξαρτησίας· διατήρηση εδαφικής ακεραιότητας",
-            red_lines_side_b="Επαναφορά του καθεστώτος αυτονομίας ως ελάχιστο",
+            ripeness_reasoning="Neither side considers the cost of the conflict to be excessive.",
+            batna_side_a="Military control over the territory; state sovereignty recognized internationally",
+            batna_side_b="Rugova's parallel structures; non-violent resistance; international exposure of the issue",
+            red_lines_side_a="No form of independence; preservation of territorial integrity",
+            red_lines_side_b="Restoration of autonomous status as a minimum",
             negotiation_type="DISTRIBUTIVE",
             economic_weight=2, military_weight=6, social_weight=2,
             participants=[("Serbia", "PARTY"), ("Kosovo", "PARTY")],
@@ -196,18 +274,17 @@ def seed_events(db, country_ids: dict):
         # E2 -- participants όπως στο προηγούμενο seed (NATO/UN mediators, βάσει batna)
         dict(
             title="Rambouillet Talks", date="1999-02-06",
-            description="Διαπραγματεύσεις στο Rambouillet της Γαλλίας, οι οποίες απέτυχαν να "
-                        "καταλήξουν σε συμφωνία. Αποτυχία → επιχείρηση Allied Force "
-                        "(24/3/1999, 78 ημέρες).",
+            description="Negotiations at Rambouillet, France, which failed to reach an "
+                        "agreement. Failure → Operation Allied Force (24/3/1999, 78 days).",
             zopa_size="NARROW",
-            zopa_reasoning="Πολύ περιορισμένη ZOPA, πανομοιότυπες κόκκινες γραμμές.",
+            zopa_reasoning="Very limited ZOPA, identical red lines.",
             ripeness_status="NOT_RIPE",
-            ripeness_reasoning="Καμία πλευρά δεν αντιλαμβανόταν αμοιβαία επώδυνο αδιέξοδο.",
-            batna_side_a="Στρατιωτική ισχύς + βέτο Ρωσίας/Κίνας στο ΣΑ του ΟΗΕ",
-            batna_side_b="Διεθνής υποστήριξη ΝΑΤΟ και ΟΗΕ· προοπτική στρατιωτικής παρέμβασης υπέρ της",
-            red_lines_side_a="Όχι ξένα στρατεύματα στο έδαφός της· όχι ανεξαρτησία· εγγυήσεις για "
-                             "σερβική θρησκευτική/πολιτισμική κληρονομιά",
-            red_lines_side_b="Αποχώρηση σερβικών δυνάμεων· πορεία προς ανεξαρτησία",
+            ripeness_reasoning="Neither side perceived a mutually hurting stalemate.",
+            batna_side_a="Military strength + Russia/China veto at the UN Security Council",
+            batna_side_b="International support from NATO and the UN; prospect of military intervention in its favor",
+            red_lines_side_a="No foreign troops on its territory; no independence; guarantees "
+                             "for Serbian religious/cultural heritage",
+            red_lines_side_b="Withdrawal of Serbian forces; a path toward independence",
             negotiation_type="DISTRIBUTIVE",
             economic_weight=2, military_weight=7, social_weight=1,
             participants=[("Serbia", "PARTY"), ("Kosovo", "PARTY"), ("NATO", "MEDIATOR"), ("UN", "MEDIATOR")],
@@ -216,17 +293,17 @@ def seed_events(db, country_ids: dict):
         # E3 -- participants όπως στο προηγούμενο seed (UN/NATO guarantors, βάσει "διεθνή στρατιωτική προστασία")
         dict(
             title="UN Security Council Resolution 1244", date="1999-06-10",
-            description="Ψήφισμα του Συμβουλίου Ασφαλείας του ΟΗΕ που τερμάτισε τις εχθροπραξίες. "
-                        "Συμφωνία με σκόπιμη ασάφεια ως προς το τελικό καθεστώς -- αυτό ήταν το "
-                        "κλειδί που επέτρεψε τη σύγκλιση.",
+            description="UN Security Council resolution that ended hostilities. An agreement "
+                        "with deliberate ambiguity regarding final status -- this was the key "
+                        "that made convergence possible.",
             zopa_size="MODERATE",
-            zopa_reasoning="Πρώτη φορά που εντοπίζεται σημείο αμοιβαίου κέρδους.",
+            zopa_reasoning="First time a point of mutual gain is identified.",
             ripeness_status="RIPE",
-            ripeness_reasoning="Το κόστος της σύγκρουσης έχει γίνει συντριπτικό και για τις δύο πλευρές.",
-            batna_side_a="Εξαντλημένη -- κυρώσεις, βομβαρδισμοί, κατεστραμμένες υποδομές",
-            batna_side_b="Πλήρης εξάρτηση από ανθρωπιστική βοήθεια, αλλά με διεθνή στρατιωτική προστασία",
-            red_lines_side_a="Τυπική αναγνώριση ότι το Κόσοβο παραμένει μέρος της ΟΔΓ",
-            red_lines_side_b="Μη επιστροφή σερβικών δυνάμεων",
+            ripeness_reasoning="The cost of the conflict has become overwhelming for both sides.",
+            batna_side_a="Exhausted -- sanctions, bombing, destroyed infrastructure",
+            batna_side_b="Complete dependence on humanitarian aid, but with international military protection",
+            red_lines_side_a="Formal recognition that Kosovo remains part of the FRY",
+            red_lines_side_b="No return of Serbian forces",
             negotiation_type="INTEGRATIVE_WIN_WIN",
             economic_weight=2, military_weight=5, social_weight=3,
             participants=[("Serbia", "PARTY"), ("Kosovo", "PARTY"), ("UN", "GUARANTOR"), ("NATO", "GUARANTOR")],
@@ -235,17 +312,16 @@ def seed_events(db, country_ids: dict):
         # E4 -- participants: UN (UNMIK διοικούσε αυτή την περίοδο) ως mediator/administrator
         dict(
             title="Standards Before Status", date="2003-01-01",
-            description="Πολιτική UNMIK/διεθνούς κοινότητας: θεσμική οικοδόμηση πριν την "
-                        "εξέταση τελικού καθεστώτος (2003-2005). Το 2004 ξέσπασαν εθνοτικές "
-                        "ταραχές -- δεκάδες σερβικές εκκλησίες και μοναστήρια πυρπολήθηκαν, "
-                        "χιλιάδες Σέρβοι εκτοπίστηκαν, και η UNMIK έχασε προσωρινά τον έλεγχο "
-                        "της κατάστασης. Καμία πρόοδος -- οι κόκκινες γραμμές παρέμειναν "
-                        "αμετάβλητες.",
+            description="UNMIK/international community policy: institution-building before "
+                        "addressing final status (2003-2005). In 2004, ethnic riots broke out "
+                        "-- dozens of Serbian churches and monasteries were burned, thousands "
+                        "of Serbs were displaced, and UNMIK temporarily lost control of the "
+                        "situation. No progress -- the red lines remained unchanged.",
             zopa_size="NARROW",
             ripeness_status="NOT_RIPE",
-            batna_side_a="Οικονομική ανάκαμψη (~5% ΑΕΠ/έτος)· ρωσοκινεζική στήριξη· ευρωπαϊκή "
-                         "προοπτική ως μοχλός",
-            batna_side_b="Παρουσία UNMIK/KFOR· σταδιακή θεσμική οικοδόμηση",
+            batna_side_a="Economic recovery (~5% GDP/year); Russian-Chinese backing; European "
+                         "perspective as leverage",
+            batna_side_b="UNMIK/KFOR presence; gradual institution-building",
             negotiation_type="DISTRIBUTIVE",
             economic_weight=4, military_weight=3, social_weight=3,
             participants=[("Serbia", "PARTY"), ("Kosovo", "PARTY"), ("UN", "MEDIATOR")],
@@ -255,16 +331,16 @@ def seed_events(db, country_ids: dict):
         # έκβασης/απόρριψης, όχι της αρχικής πρόθεσης)
         dict(
             title="Ahtisaari Plan", date="2007-03-26",
-            description="Πρόταση του ειδικού απεσταλμένου του ΟΗΕ Martti Ahtisaari για "
-                        "επιτηρούμενη ανεξαρτησία. Απόρριψη από Σερβία -- οι δύο θέσεις είναι "
-                        "κυριολεκτικά μη τεμνόμενες, ιδανικό παράδειγμα ZOPA=∅.",
+            description="Proposal by UN Special Envoy Martti Ahtisaari for supervised "
+                        "independence. Rejected by Serbia -- the two positions are literally "
+                        "non-intersecting, a textbook example of ZOPA=∅.",
             zopa_size="NARROW",
-            zopa_reasoning="Απόπειρα διεύρυνσης που απέτυχε.",
+            zopa_reasoning="A widening attempt that failed.",
             ripeness_status="EMERGING",
-            batna_side_a="Βέτο Ρωσίας στο ΣΑ -- το σχέδιο δεν έφτασε καν προς ψήφιση",
-            batna_side_b="Μονομερής ανακήρυξη με δυτική στήριξη",
-            red_lines_side_a="«Κάτι περισσότερο από αυτονομία, κάτι λιγότερο από ανεξαρτησία»",
-            red_lines_side_b="«Όχι κάτι λιγότερο από ανεξαρτησία»",
+            batna_side_a="Russian veto at the Security Council -- the plan didn't even reach a vote",
+            batna_side_b="Unilateral declaration with Western backing",
+            red_lines_side_a="\"Something more than autonomy, something less than independence\"",
+            red_lines_side_b="\"Nothing less than independence\"",
             negotiation_type="DISTRIBUTIVE",
             economic_weight=4, military_weight=2, social_weight=4,
             participants=[("Serbia", "PARTY"), ("Kosovo", "PARTY"), ("UN", "MEDIATOR"), ("EU", "MEDIATOR")],
@@ -272,9 +348,9 @@ def seed_events(db, country_ids: dict):
         ),
         dict(
             title="Unilateral Declaration of Independence", date="2008-02-17",
-            description="Μονομερής ανακήρυξη ανεξαρτησίας του Κοσόβου. >100 αναγνωρίσεις· 5 "
-                        "κράτη-μέλη ΕΕ αρνούνται· γνωμοδότηση ICJ 2010 (ούτε νομιμοποιεί ούτε "
-                        "καταδικάζει).",
+            description="Unilateral declaration of Kosovo's independence. >100 recognitions; "
+                        "5 EU member states refuse; 2010 ICJ advisory opinion (neither "
+                        "legitimizes nor condemns it).",
             zopa_size="NARROW",
             ripeness_status="NOT_RIPE",
             negotiation_type="DISTRIBUTIVE",
@@ -283,19 +359,19 @@ def seed_events(db, country_ids: dict):
         ),
         dict(
             title="Brussels Agreement", date="2013-04-19",
-            description="Συμφωνία Βρυξελλών για την ομαλοποίηση των σχέσεων, με τη μεσολάβηση "
-                        "της ΕΕ. Συμφωνία, αλλά αποτυχία εφαρμογής -- «κακό προηγούμενο». Η ASM "
-                        "μπλοκαρίστηκε από το Συνταγματικό Δικαστήριο του Κοσόβου (2015)· η "
-                        "Σερβία διατήρησε παράλληλες δομές.",
+            description="Brussels Agreement on normalizing relations, mediated by the EU. An "
+                        "agreement was reached, but implementation failed -- \"a bad "
+                        "precedent.\" The ASM was blocked by Kosovo's Constitutional Court "
+                        "(2015); Serbia maintained parallel structures.",
             zopa_size="WIDE",
-            zopa_reasoning="Η ZOPA είχε διευρυνθεί αρκετά σε σύγκριση με τα προηγούμενα χρόνια.",
+            zopa_reasoning="The ZOPA had widened considerably compared to previous years.",
             ripeness_status="RIPE",
-            ripeness_reasoning="Το κείμενο ονομάζει ρητά το 2013 «κρίσιμη στιγμή ωρίμανσης».",
-            batna_side_a="Εμφανώς αποδυναμωμένη -- 2,79 δις IPA, 60% εξαγωγών προς ΕΕ, 13 δις "
-                         "FDI. Καμία ουσιαστική εναλλακτική πέραν της μη αναγνώρισης",
-            batna_side_b="Δυτική στήριξη, αλλά αδυναμία επιβολής κυριαρχίας στο Βόρειο Κόσοβο",
-            red_lines_side_a="Προστασία σερβικών κοινοτήτων μέσω ΑSM με ουσιαστικές αρμοδιότητες",
-            red_lines_side_b="Ενιαίο θεσμικό πλαίσιο· η ASM να μην έχει νομοθετική εξουσία",
+            ripeness_reasoning="The text explicitly names 2013 a \"critical ripening moment.\"",
+            batna_side_a="Visibly weakened -- 2.79bn IPA, 60% of exports to the EU, 13bn FDI. "
+                         "No substantive alternative beyond non-recognition",
+            batna_side_b="Western backing, but unable to assert sovereignty over northern Kosovo",
+            red_lines_side_a="Protection of Serbian communities through an ASM with substantive powers",
+            red_lines_side_b="A unified institutional framework; the ASM to have no legislative power",
             negotiation_type="INTEGRATIVE_WIN_WIN",
             economic_weight=6, military_weight=1, social_weight=3,
             participants=[("Serbia", "PARTY"), ("Kosovo", "PARTY"), ("EU", "MEDIATOR")],
@@ -304,16 +380,16 @@ def seed_events(db, country_ids: dict):
         # E8 -- participants: EU mediator βάσει "ζήτησε παρέμβαση Βρυξελλών" στο batna_side_a
         dict(
             title="Kosovo Tariffs on Serbian Goods (100%)", date="2018-11-21",
-            description="Εμπορικός πόλεμος: το Κόσοβο επέβαλε δασμούς 100% σε σερβικά (και "
-                        "βοσνιακά) προϊόντα. Σοβαρό κόστος και για τις δύο πλευρές· άρση "
-                        "σταδιακά μέχρι το 2020 με αμερικανική πίεση.",
+            description="Trade war: Kosovo imposed 100% tariffs on Serbian (and Bosnian) "
+                        "goods. Serious cost for both sides; gradually lifted by 2020 under "
+                        "American pressure.",
             zopa_size="NARROW",
-            zopa_reasoning="Δραστική συρρίκνωση.",
+            zopa_reasoning="Drastic contraction.",
             ripeness_status="NOT_RIPE",
-            batna_side_a="Καταψήφιση ένταξης Κοσόβου σε διεθνείς οργανισμούς· αλλά χωρίς ισχυρή "
-                         "εναλλακτική -- ζήτησε παρέμβαση Βρυξελλών για άρση δασμών",
-            batna_side_b="Οι δασμοί μείωσαν την εξάρτηση από σερβικές εισαγωγές → αύξησαν τη "
-                         "διαπραγματευτική του ισχύ",
+            batna_side_a="Voting down Kosovo's accession to international organizations; but "
+                         "without a strong alternative -- requested Brussels' intervention to "
+                         "lift the tariffs",
+            batna_side_b="The tariffs reduced dependence on Serbian imports → increased its bargaining power",
             negotiation_type="DISTRIBUTIVE",
             economic_weight=7, military_weight=1, social_weight=2,
             participants=[("Kosovo", "PARTY"), ("Serbia", "PARTY"), ("EU", "MEDIATOR")],
@@ -321,11 +397,11 @@ def seed_events(db, country_ids: dict):
         # E9 -- negotiation_type: spec "INTEGRATIVE (μόνο οικονομικό επίπεδο)" -> INTEGRATIVE_WIN_WIN
         dict(
             title="Washington Agreement", date="2020-09-04",
-            description="Οικονομικής φύσης συμφωνία υπό αμερικανική μεσολάβηση (μόνο σε "
-                        "οικονομικό επίπεδο, όχι πολιτικό καθεστώς). Αποτυχία -- έλλειψη "
-                        "πολιτικής βούλησης, αλλαγή ηγεσίας ΗΠΑ, απουσία ελεγκτικού μηχανισμού.",
+            description="An economic agreement under American mediation (economic level "
+                        "only, not political status). Failed -- lack of political will, "
+                        "change of US leadership, absence of an enforcement mechanism.",
             zopa_size="NARROW",
-            zopa_reasoning="Αρκετά περιορισμένη ZOPA.",
+            zopa_reasoning="Quite a limited ZOPA.",
             ripeness_status="EMERGING",
             negotiation_type="INTEGRATIVE_WIN_WIN",
             economic_weight=8, military_weight=1, social_weight=1,
@@ -334,18 +410,18 @@ def seed_events(db, country_ids: dict):
         ),
         dict(
             title="Ohrid Agreement", date="2023-03-18",
-            description="Συμφωνία της Οχρίδας για την εφαρμογή του Βασικού Σχεδίου ομαλοποίησης "
-                        "σχέσεων. Έγινε δεκτή αλλά δεν υπογράφηκε επισήμως· προφορικές "
-                        "δεσμεύσεις· εκκρεμεί η εφαρμογή.",
+            description="Ohrid Agreement on implementing the Basic Agreement for the "
+                        "normalization of relations. Accepted but not formally signed; "
+                        "verbal commitments; implementation pending.",
             zopa_size="WIDE",
-            zopa_reasoning="Η αξιολόγηση της ZOPA είναι θετική, διευρύνθηκε σε σύγκριση με "
-                          "προηγούμενες συμφωνίες.",
+            zopa_reasoning="The ZOPA assessment is positive, having widened compared to "
+                          "previous agreements.",
             ripeness_status="RIPE",
-            batna_side_a="Ρωσοκινεζική στήριξη, αλλά η ευρωπαϊκή προοπτική λειτουργεί ως "
-                         "περιοριστικός παράγοντας στη χρήση της",
-            batna_side_b="Διατήρηση δυτικής υποστήριξης για σταδιακή διεθνή αναγνώριση",
-            red_lines_side_a="Μη ρητή αναγνώριση· αυτοδιοίκηση σερβικών κοινοτήτων",
-            red_lines_side_b="Μη παρεμπόδιση ένταξης σε διεθνείς οργανισμούς",
+            batna_side_a="Russian-Chinese backing, but the European perspective acts as a "
+                         "constraint on its use",
+            batna_side_b="Continued Western support for gradual international recognition",
+            red_lines_side_a="No explicit recognition; self-governance for Serbian communities",
+            red_lines_side_b="No obstruction of accession to international organizations",
             negotiation_type="INTEGRATIVE_WIN_WIN",
             economic_weight=5, military_weight=1, social_weight=4,
             participants=[("Serbia", "PARTY"), ("Kosovo", "PARTY"), ("EU", "MEDIATOR"), ("USA", "MEDIATOR")],
