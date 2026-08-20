@@ -8,11 +8,44 @@ interface GlossaryTerm {
 }
 
 const TERMS: GlossaryTerm[] = [
-  { term: "ZOPA", definition: "The range where both sides could realistically agree." },
-  { term: "BATNA", definition: "What each side would do if talks failed." },
-  { term: "Ripeness", definition: "Whether conditions are favorable for a deal right now." },
-  { term: "Power Index", definition: "A composite score of a country's economic/military/social strength." },
-  { term: "Window Score", definition: "How favorable a specific year was for reaching agreement." },
+  {
+    term: "ZOPA",
+    definition:
+      "Zone of Possible Agreement: the range of outcomes where both sides' minimum acceptable " +
+      "terms overlap. If the two sides' bottom lines don't overlap at all, no deal is " +
+      "mathematically possible, regardless of goodwill.",
+  },
+  {
+    term: "BATNA",
+    definition:
+      "Best Alternative to a Negotiated Agreement: what each side would realistically do if the " +
+      "talks collapsed. A strong BATNA gives a side less incentive to compromise; a weak one " +
+      "pushes them toward a deal.",
+  },
+  {
+    term: "Ripeness",
+    definition:
+      "Whether the negotiating parties have reached a point where both sides see more to gain " +
+      "from a deal than from continuing the deadlock -- typically because prolonging the " +
+      "conflict has become too costly for at least one side (a \"mutually hurting stalemate,\" " +
+      "per Zartman's ripeness theory). Ripeness is about timing, not just goodwill.",
+  },
+  {
+    term: "Power Index",
+    definition:
+      "A composite 0-100 score combining a country's economic (40%), military (40%), and " +
+      "social-stability (20%) indicators for a given year. This is exactly how the Power Index " +
+      "shown throughout this platform is calculated -- it's a structural measure of relative " +
+      "strength, not a prediction of negotiating behavior.",
+  },
+  {
+    term: "Window Score",
+    definition:
+      "A composite score estimating how favorable a specific year was for reaching a durable " +
+      "agreement, combining power symmetry between the two sides, the trend in that symmetry " +
+      "over time, and social pressure. A high Window Score does not guarantee an agreement was " +
+      "reached or implemented -- see the \"Window Score vs Implementation\" chart for that gap.",
+  },
 ];
 
 // Κλικαρίσιμα chips, ξαναχρησιμοποιούν την ίδια .badge κλάση από το

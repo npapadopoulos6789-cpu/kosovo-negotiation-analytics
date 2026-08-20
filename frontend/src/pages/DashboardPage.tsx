@@ -23,6 +23,10 @@ export function DashboardPage() {
         of a thesis on the Serbia-Kosovo negotiations. Use the charts below to explore
         interactively when, and why, conditions were (or weren't) ripe for agreement.
       </p>
+      <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
+        Below are the key concepts used throughout this platform -- click each one to see how
+        it's defined and calculated.
+      </p>
 
       <Glossary />
 
