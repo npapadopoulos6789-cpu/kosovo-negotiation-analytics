@@ -187,3 +187,9 @@ export interface PowerIndexBreakdown {
   social: number;
   power_index: number;
 }
+
+// Αντιστοιχεί στο response του GET /analytics/window-score/{year}
+export interface WindowScoreResult {
+  year: number;
+  window_score: number;
+}

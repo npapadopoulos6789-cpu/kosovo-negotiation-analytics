@@ -3,6 +3,7 @@ import { listNegotiationEvents } from "../api/negotiationEvents";
 import { ZopaImplementationChart } from "../components/charts/ZopaImplementationChart";
 import { PowerIndexBreakdownChart } from "../components/charts/PowerIndexBreakdownChart";
 import { SerbiaPowerTransformationChart } from "../components/charts/SerbiaPowerTransformationChart";
+import { PoliticalVsEconomicCostChart } from "../components/charts/PoliticalVsEconomicCostChart";
 import { LoadingState, ErrorState, EmptyState } from "../components/ui";
 
 export function DashboardPage() {
@@ -43,6 +44,14 @@ export function DashboardPage() {
         them 40% / 40% / 20% rather than summing them equally (see CLAUDE.md).
       </p>
       <SerbiaPowerTransformationChart />
+
+      <h2 style={{ marginTop: "2rem" }}>Political vs. economic cost</h2>
+      <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
+        Freedom House score (political stability, both countries) vs. Window Score (composite
+        ripeness signal) -- same 0-100 scale, so a line is legitimate here. The Window Score line
+        breaks where data is missing rather than interpolating across it.
+      </p>
+      <PoliticalVsEconomicCostChart />
     </div>
   );
 }
