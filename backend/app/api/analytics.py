@@ -15,6 +15,14 @@ def get_power_index(country_id: int, year: int, db: Session = Depends(get_db)):
     return {"country_id": country_id, "year": year, "power_index": result}
 
 
+@router.get("/power-index-breakdown/{country_id}/{year}")
+def get_power_index_breakdown(country_id: int, year: int, db: Session = Depends(get_db)):
+    result = analytics_service.calculate_power_index_breakdown(db, country_id, year)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Insufficient data for this country/year")
+    return {"country_id": country_id, "year": year, **result}
+
+
 @router.get("/power-gap/{year}")
 def get_power_gap(
     year: int, serbia_id: int, kosovo_id: int, db: Session = Depends(get_db)

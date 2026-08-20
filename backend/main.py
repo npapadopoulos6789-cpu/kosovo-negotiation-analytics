@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.country import router as country_router
 from app.api.indicator import router as indicator_router
@@ -21,6 +22,17 @@ from app.services.negotiation_analysis import (
 from app.services.llm_client import LLMCallError
 
 app = FastAPI()
+
+# Επιτρέπει στο React dev server (:5173) να καλεί αυτό το API (:8000) --
+# χωρίς αυτό ο browser μπλοκάρει τα requests πριν καν φτάσουν στο FastAPI
+# (browser-level block, όχι network error στο backend log).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=False,
+)
 
 app.include_router(country_router)
 app.include_router(indicator_router)

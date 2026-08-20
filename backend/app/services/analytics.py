@@ -70,6 +70,22 @@ def calculate_power_index(db: Session, country_id: int, year: int) -> float | No
     return round(power_index, 2)
 
 
+def calculate_power_index_breakdown(db: Session, country_id: int, year: int) -> dict | None:
+    economic = get_category_score(db, country_id, year, "ECONOMIC")
+    military = get_category_score(db, country_id, year, "MILITARY")
+    social = get_category_score(db, country_id, year, "SOCIAL_UNREST")
+
+    if economic is None or military is None or social is None:
+        return None
+
+    return {
+        "economic": economic,
+        "military": military,
+        "social": social,
+        "power_index": calculate_power_index(db, country_id, year),
+    }
+
+
 def calculate_power_gap(
     db: Session, serbia_id: int, kosovo_id: int, year: int
 ) -> float | None:

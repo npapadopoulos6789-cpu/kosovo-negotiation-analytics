@@ -87,6 +87,31 @@ def test_calculate_power_index_returns_none_if_category_missing(monkeypatch):
     assert result is None
 
 
+def test_calculate_power_index_breakdown_returns_all_components(monkeypatch):
+    def fake_get_category_score(db, country_id, year, category):
+        scores = {"ECONOMIC": 80.0, "MILITARY": 60.0, "SOCIAL_UNREST": 50.0}
+        return scores[category]
+
+    monkeypatch.setattr(analytics_service, "get_category_score", fake_get_category_score)
+
+    result = analytics_service.calculate_power_index_breakdown(db=None, country_id=1, year=2013)
+
+    assert result == {"economic": 80.0, "military": 60.0, "social": 50.0, "power_index": 66.0}
+
+
+def test_calculate_power_index_breakdown_returns_none_if_category_missing(monkeypatch):
+    def fake_get_category_score(db, country_id, year, category):
+        if category == "SOCIAL_UNREST":
+            return None
+        return 80.0
+
+    monkeypatch.setattr(analytics_service, "get_category_score", fake_get_category_score)
+
+    result = analytics_service.calculate_power_index_breakdown(db=None, country_id=1, year=2013)
+
+    assert result is None
+
+
 def test_calculate_power_gap_returns_absolute_difference(monkeypatch):
     def fake_power_index(db, country_id, year):
         return {1: 70.0, 2: 45.0}[country_id]
