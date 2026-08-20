@@ -1,7 +1,7 @@
 .app-shell {
   min-height: 100vh;
-  background: #f7f7f8;
-  color: #1c1c1f;
+  background: var(--color-bg, #f4f5f7);
+  color: var(--color-text, #1a2130);
 }
 
 .app-header {
@@ -9,8 +9,8 @@
   align-items: center;
   gap: 2rem;
   padding: 0.9rem 1.5rem;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e2e6;
+  background: var(--color-surface, #ffffff);
+  border-bottom: 1px solid var(--color-border, #d7dbe0);
 }
 
 .app-title {
@@ -24,7 +24,7 @@
 }
 
 .app-nav__link {
-  color: #6b6b73;
+  color: var(--color-text-muted, #5b6472);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
@@ -33,12 +33,12 @@
 }
 
 .app-nav__link:hover {
-  color: #1c1c1f;
+  color: var(--color-text, #1a2130);
 }
 
 .app-nav__link--active {
-  color: #2b4c7e;
-  border-bottom-color: #2b4c7e;
+  color: var(--color-accent, #22314f);
+  border-bottom-color: var(--color-accent, #22314f);
 }
 
 .app-main {

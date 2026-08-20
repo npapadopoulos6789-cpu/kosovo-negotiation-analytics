@@ -1,0 +1,64 @@
+/* Μοιρασμένο styling για τα primitives (Card/Badge/LoadingState/ErrorState/
+   EmptyState). Σκούρο navy/γκρι, ακαδημαϊκό -- ελάχιστα χρώματα, καμία
+   περιττή διακόσμηση. */
+
+:root {
+  --color-bg: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-border: #d7dbe0;
+  --color-text: #1a2130;
+  --color-text-muted: #5b6472;
+  --color-accent: #22314f;
+  --color-accent-bg: #e7eaf0;
+
+  /* Σκόπιμα γκρι-άξονα tones αντί για πράσινο/κόκκινο/κίτρινο traffic-light
+     -- ακαδημαϊκό ύφος, η διαβάθμιση δίνεται με βάρος γραμματοσειράς +
+     ελαφρύ σκίασμα, όχι με χρώμα-σινιάλο. */
+  --tone-positive-text: #22314f;
+  --tone-positive-bg: #dfe4ec;
+  --tone-warning-text: #3d4451;
+  --tone-warning-bg: #e9ebee;
+  --tone-negative-text: #1a2130;
+  --tone-negative-bg: #cfd4db;
+
+  --radius: 6px;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.15rem 0.55rem;
+  border-radius: 3px;
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.badge--positive { background: var(--tone-positive-bg); color: var(--tone-positive-text); font-weight: 700; }
+.badge--warning { background: var(--tone-warning-bg); color: var(--tone-warning-text); }
+.badge--negative { background: var(--tone-negative-bg); color: var(--tone-negative-text); }
+.badge--neutral { background: var(--color-border); color: var(--color-text-muted); font-weight: 500; }
+
+.state-block {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.state-block--error {
+  color: var(--color-text);
+  background: var(--color-accent-bg);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  text-align: left;
+}
