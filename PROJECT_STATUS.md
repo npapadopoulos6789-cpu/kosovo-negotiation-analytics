@@ -124,9 +124,30 @@ of the user's question" -- ΜΙΑ γραμμή στο `SHARED_PREAMBLE`, καλ�
 ίδιο `answer_certainty: HIGH`, καθαρό parsing. `pytest -q` 87/87 πριν και
 μετά το prompt αλλαγή (τα prompts είναι static strings, δεν σπάνε tests).
 
+7. ✅ **Synthesis + Compare pages -- πλήρως λειτουργικές end-to-end**
+   (2026-08-20). `SynthesisPage` (POST /synthesis) + `ComparePage` (δύο
+   `<select>` event pickers, POST /compare, client-side self-compare
+   guard πριν καν φτάσει στο backend 422). `LLMAnswerCard` ξαναγράφηκε
+   με ρητό `variant` prop (`"qa" | "synthesis" | "compare"`) -- ο caller
+   δίνει το variant, ΔΕΝ γίνεται μάντεμα από το response shape (το
+   Compare είναι de facto αδύνατο να ξεχωριστεί αξιόπιστα από Q&A στο
+   backend response -- ίδιο `is_synthesis=false`, μη-null
+   `negotiation_event_id`, μόνο ένα `"[COMPARE]"` πρόθεμα στο
+   `user_question` ως σύμβαση). Στην πορεία εντοπίστηκε και διορθώθηκε
+   bug: το παλιό `LLMAnswerCard` ΔΕΝ έκανε καν `JSON.parse` στο
+   `llm_answer` -- θα έδειχνε raw JSON string στην οθόνη αν είχε δοκιμαστεί
+   νωρίτερα μέσα από το UI. **variant branching επιβεβαιωμένο και στα 3
+   flows** με πραγματικά calls: QA (event 1), Synthesis (convergent-
+   validity ερώτηση, 10-row `quantitative_qualitative_comparison`,
+   σωστά αναγνώρισε το 2007 Ahtisaari ως το μοναδικό divergence),
+   Compare (event 2 Rambouillet vs event 7 Brussels -- ανέδειξε ρητά τη
+   στρατιωτική→οικονομική μετατόπιση μόχλευσης, το κεντρικό εύρημα της
+   διπλωματικής). **English-language fix επιβεβαιωμένο και στα 3 flows.**
+   Σύνολο πραγματικών paid calls σε όλο το session: 4, όλα ρητά
+   συμφωνημένα πριν το submit. Καμία αλλαγή κώδικα χρειάστηκε μετά τα
+   tests -- όλα δούλεψαν καθαρά με την πρώτη.
+
 **Ακόμα δεν έγινε (backlog, ενημερωμένο 2026-08-20):**
-- ❌ Synthesis σελίδα (πραγματικό UI, το route υπάρχει μόνο ως placeholder)
-- ❌ Compare σελίδα (το route υπάρχει μόνο ως placeholder)
 - ❌ Dashboard με τα analytics charts (το route υπάρχει μόνο ως placeholder)
 - ❌ `analytics.ts` resource module (Power Index/Gap/Window Score/Optimal Periods)
 - ❌ Docker Compose πλήρες stack (api+frontend services· σήμερα μόνο `db`)
