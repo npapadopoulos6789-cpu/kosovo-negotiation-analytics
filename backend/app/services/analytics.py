@@ -37,6 +37,12 @@ def get_category_score(
     matching = [
         ind for ind in all_indicators
         if ind.year == year and ind.category.value == category
+        # Αγνοούμε indicator_types χωρίς normalization range -- σκόπιμα
+        # ΕΚΤΟΣ Power Index (π.χ. GDP_absolute_usd, καθαρά πληροφοριακό
+        # context, βλ. SEED_SOURCE.md). Χωρίς αυτό το φίλτρο, το
+        # normalize() παρακάτω θα έσκαγε με ValueError για κάθε τέτοιο
+        # indicator -- θα έσπαγε το Power Index αντί να το αφήνει ανέγγιχτο.
+        and ind.indicator_type in NORMALIZATION_RANGES
     ]
 
     if not matching:

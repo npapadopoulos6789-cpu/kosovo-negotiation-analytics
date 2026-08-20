@@ -181,6 +181,18 @@ def seed_indicators(db, country_ids: dict):
 
         (serbia_id, "ECONOMIC", "trade_share_eu", 2023, 60.0, "%", "European Commission/IMF/Statistical Office of Serbia, Thesis Chart 1.8", None),
 
+        # ============ SERBIA — CONTEXT ONLY, ΕΚΤΟΣ Power Index ============
+        # GDP_absolute_usd: ΔΕΝ είναι στο NORMALIZATION_RANGES (analytics.py)
+        # -- σκόπιμα, καθαρά πληροφοριακό μέγεθος οικονομίας, όχι είσοδος
+        # στο Power Index (που μετράει δυναμική/κατεύθυνση μέσω GDP_growth,
+        # όχι απόλυτο μέγεθος). Βλ. SEED_SOURCE.md για το πλήρες σκεπτικό.
+        (serbia_id, "ECONOMIC", "GDP_absolute_usd", 1999, 20878694850.58, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
+        (serbia_id, "ECONOMIC", "GDP_absolute_usd", 2005, 28334256180.88, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
+        (serbia_id, "ECONOMIC", "GDP_absolute_usd", 2007, 44888028946.09, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
+        (serbia_id, "ECONOMIC", "GDP_absolute_usd", 2008, 54220641201.65, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
+        (serbia_id, "ECONOMIC", "GDP_absolute_usd", 2013, 50455529604.07, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
+        (serbia_id, "ECONOMIC", "GDP_absolute_usd", 2023, 81343999280.02, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
+
         # ============ SERBIA — MILITARY (World Bank API, πηγή SIPRI, πραγματικά -- ΑΜΕΤΑΒΛΗΤΟ) ============
         (serbia_id, "MILITARY", "military_expenditure_pct_gdp", 1999, 3.53, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)", None),
         (serbia_id, "MILITARY", "military_expenditure_pct_gdp", 2005, 2.22, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)", None),
@@ -211,6 +223,16 @@ def seed_indicators(db, country_ids: dict):
         (kosovo_id, "ECONOMIC", "unemployment_rate", 2008, 48.0, "%", "ILO/World Bank Open Data, Thesis Chart 1.5", None),
 
         (kosovo_id, "ECONOMIC", "trade_share_eu", 2018, 44.7, "%", "Council of the European Union 2018, Thesis Chart 1.7 (imports)", None),
+
+        # ============ KOSOVO — CONTEXT ONLY, ΕΚΤΟΣ Power Index ============
+        # GDP_absolute_usd: ίδιο σκεπτικό με Serbia παραπάνω. Μόνο 2008/2013/
+        # 2023 -- το World Bank (XKX) ΔΕΝ έχει σειρά για το Κόσοβο πριν το
+        # 2008 (δεν υπήρχε ως ξεχωριστή reporting entity πριν την ανεξαρτησία·
+        # confirmed κενό στο API, όχι απλά μη-ελεγμένο). Σκόπιμα ΔΕΝ βάζουμε
+        # τιμές για 1999/2005/2007 -- δεν υπάρχει αξιόπιστη δημόσια πηγή.
+        (kosovo_id, "ECONOMIC", "GDP_absolute_usd", 2008, 5202943075.49, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
+        (kosovo_id, "ECONOMIC", "GDP_absolute_usd", 2013, 6735327512.05, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
+        (kosovo_id, "ECONOMIC", "GDP_absolute_usd", 2023, 10466753839.99, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
 
         # ============ KOSOVO — MILITARY (τεκμηριωμένη εκτίμηση -- ΑΜΕΤΑΒΛΗΤΟ) ============
         (kosovo_id, "MILITARY", "troop_presence_index", 1999, 90.0, "index_score", "Researcher estimate based on the NATO/KFOR narrative in the thesis", None),

@@ -412,6 +412,47 @@ Rambouillet 0.0 · Ψήφισμα 1244 0.7 · Ahtisaari 0.0 · Βρυξέλλε�
 
 **`international_recognitions`** (count) — deferred: 2008→1 (Αλβανία), 2024→100 (κείμενο), 2024→5 (`eu_non_recognizers`)
 
+### 3.5 `GDP_absolute_usd` — context only, ΕΚΤΟΣ Power Index (2026-08-21)
+
+**Μεθοδολογική απόφαση:** το απόλυτο μέγεθος της οικονομίας (GDP σε USD)
+**δεν** μπαίνει στο `NORMALIZATION_RANGES`/`POWER_INDEX_WEIGHTS`
+([analytics.py](backend/app/services/analytics.py)) — το Power Index
+μετράει **δυναμική/κατεύθυνση** μέσω `GDP_growth` (ρυθμός μεταβολής, ήδη
+μέρος του ECONOMIC score), όχι απόλυτη κλίμακα. Η Σερβία έχει ~8x
+μεγαλύτερη οικονομία από το Κόσοβο σε απόλυτους όρους, αλλά αυτό είναι
+ένα δομικό δεδομένο (population/history), όχι κάτι που αλλάζει
+διαπραγματευτικά έτος με έτος — η ένταξή του στο Power Index θα
+κυριαρχούσε μόνιμα στο σκορ και θα έκρυβε τις πραγματικές διακυμάνσεις
+δύναμης (π.χ. πτωτική τάση Σερβίας 2013-2023 παρόλο που παραμένει
+μεγαλύτερη οικονομία). Δείχνεται ξεχωριστά στο frontend ως **καθαρά
+πληροφοριακό context** (`EconomySizeContext` component στο Dashboard),
+όχι ως συστατικό υπολογισμού.
+
+**Πηγή:** World Bank API, indicator `NY.GDP.MKTP.CD` (GDP, current US$),
+verified με raw JSON query 2026-08-21.
+
+| year | Serbia | Kosovo |
+|---|---|---|
+| 1999 | $20,878,694,851 | ❌ δεν υπάρχει (XKX series ξεκινά 2008) |
+| 2005 | $28,334,256,181 | ❌ δεν υπάρχει |
+| 2007 | $44,888,028,946 | ❌ δεν υπάρχει |
+| 2008 | $54,220,641,202 | $5,202,943,075 |
+| 2013 | $50,455,529,604 | $6,735,327,512 |
+| 2023 | $81,343,999,280 | $10,466,753,840 |
+
+Το World Bank ΔΕΝ έχει σειρά GDP για το Κόσοβο (XKX) πριν το 2008 — δεν
+υπήρχε ως ξεχωριστή reporting entity πριν την ανεξαρτησία. Confirmed
+κενό στο API (`value: null` για 1999/2005/2007), όχι απλά μη-ελεγμένο.
+Δεν εικάσαμε τιμές γι' αυτά τα έτη.
+
+**Τεχνική σημείωση:** το `get_category_score()` επεκτάθηκε να αγνοεί
+indicator_types χωρίς normalization range (αντί να σκάει με
+`ValueError`) — απαραίτητο ώστε αυτό το context-only indicator να μπορεί
+να συνυπάρχει στην κατηγορία ECONOMIC χωρίς να επηρεάζει το Power Index.
+Επιβεβαιώθηκε με regression test: Power Index breakdown για Serbia 2013
+ταυτόσημο πριν/μετά (economic=52.55, military=23.12, social=56.0,
+power_index=41.47).
+
 ---
 
 ## 4. Actor roles per event (event_participants)

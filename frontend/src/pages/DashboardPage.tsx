@@ -6,6 +6,7 @@ import { SerbiaPowerTransformationChart } from "../components/charts/SerbiaPower
 import { PoliticalVsEconomicCostChart } from "../components/charts/PoliticalVsEconomicCostChart";
 import { WindowScoreVsImplementationChart } from "../components/charts/WindowScoreVsImplementationChart";
 import { Glossary } from "../components/Glossary";
+import { EconomySizeContext } from "../components/EconomySizeContext";
 import { LoadingState, ErrorState, EmptyState } from "../components/ui";
 
 export function DashboardPage() {
@@ -29,6 +30,10 @@ export function DashboardPage() {
       </p>
 
       <Glossary />
+
+      <div style={{ marginTop: "1.5rem" }}>
+        <EconomySizeContext />
+      </div>
 
       <h2 style={{ marginTop: "2rem" }}>ZOPA size vs. implementation success</h2>
       <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
