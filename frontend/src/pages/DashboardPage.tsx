@@ -4,6 +4,7 @@ import { ZopaImplementationChart } from "../components/charts/ZopaImplementation
 import { PowerIndexBreakdownChart } from "../components/charts/PowerIndexBreakdownChart";
 import { SerbiaPowerTransformationChart } from "../components/charts/SerbiaPowerTransformationChart";
 import { PoliticalVsEconomicCostChart } from "../components/charts/PoliticalVsEconomicCostChart";
+import { WindowScoreVsImplementationChart } from "../components/charts/WindowScoreVsImplementationChart";
 import { LoadingState, ErrorState, EmptyState } from "../components/ui";
 
 export function DashboardPage() {
@@ -52,6 +53,14 @@ export function DashboardPage() {
         breaks where data is missing rather than interpolating across it.
       </p>
       <PoliticalVsEconomicCostChart />
+
+      <h2 style={{ marginTop: "2rem" }}>Window Score vs. implementation success</h2>
+      <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
+        The central finding: conditions were structurally ripe in 2013 and 2023 (high Window
+        Score), but the resulting agreements were only partially implemented. Different scales --
+        implementation_success (0-1) is shown ×100 for a shared axis, labeled explicitly below.
+      </p>
+      <WindowScoreVsImplementationChart />
     </div>
   );
 }
