@@ -84,12 +84,51 @@ _reference table είναι στο σχόλιο στο τέλος του `fronte
 _Κάθε επόμενο resource module πρέπει να κοιτάξει το αντίστοιχο_
 _`backend/app/api/*.py`, όχι να υποθέσει._
 
-**Ακόμα δεν έγινε (πλήρες backlog, 2026-08-20):**
-- ❌ Routing (react-router-dom είναι installed, δεν έχει στηθεί)
-- ❌ Layout / UI components (`App.tsx` ακόμα το default Vite starter)
-- ❌ Resource modules: Indicator, NegotiationEvent, Analytics, Synthesis (μόνο Country έγινε)
-- ❌ Shared primitives (Card/Badge/Loading/Error/Empty)
-- ❌ Σελίδες: Actors, Events, Synthesis, Compare, Dashboard
+**Frontend build, βήμα-βήμα με commit μετά από ΚΑΘΕ βήμα (2026-08-20,
+συνέχεια session -- 6 μικρά commits):**
+1. ✅ Routing skeleton: react-router-dom, 5 routes, navbar "Actors" label,
+   επιβεβαιωμένο με Playwright+system Edge (temp devDependency, αφαιρέθηκε
+   μετά) -- 5/5 clicks, JS marker επιβίωσε σε όλα → αποδεδειγμένα ΚΑΝΕΝΑ
+   full page reload
+2. ✅ Shared primitives: `Card`/`Badge`/`LoadingState`/`ErrorState`/
+   `EmptyState` σε `components/ui/` -- navy/γκρι παλέτα, tones με
+   βάρος/σκίαση όχι traffic-light χρώματα (σκόπιμα ακαδημαϊκό ύφος)
+3. ✅ Resource modules: `indicators.ts` + `negotiationEvents.ts` (types.ts
+   επεκτάθηκε αντίστοιχα). Analytics/Synthesis/Compare ΑΚΟΜΑ όχι --
+   κάνουν paid LLM calls, χτίζονται ξεχωριστά με ρητή επίβλεψη
+4. ✅ `ActorsPage` (λίστα) + νέο `ActorDetailPage` (route `/actors/:id`,
+   indicators ομαδοποιημένα ανά category) -- επιβεβαιωμένο screenshot σε
+   2 states (Serbia: indicators χωρίς role_description· Russia:
+   role_description χωρίς indicators, σωστό EmptyState)
+5. ✅ `EventsListPage` + `EventDetailPage` (route `/events/:id`) --
+   επιβεβαιωμένο σε πλήρες event (E1, όλα τα conditional sections) ΚΑΙ
+   minimal event (E6, sections χωρίς δεδομένα ΔΕΝ εμφανίζονται καθόλου)
+6. ✅ Πρώτο LLM interaction: `QuestionForm` + `LLMAnswerCard`, per-event
+   Q&A στο `EventDetailPage` (`negotiationAnalyses.ts`, μόνο
+   `createAnalysis`/`listAnalysesByEvent` -- ΟΧΙ synthesis/compare ακόμα).
+   **2 πραγματικά paid Claude API calls έγιναν συνολικά σε αυτό το
+   session**, και τα δύο ρητά επιβεβαιωμένα με τον χρήστη πριν το submit
+   (βλ. εύρημα γλώσσας παρακάτω) -- το UI ποτέ δεν κάνει submit μόνο του.
+
+**Εύρημα + fix: LLM απαντούσε στα Ελληνικά παρόλο που η γλώσσα UI είναι
+English (2026-08-20).** Πρώτο πραγματικό test call (event 1, ερώτηση στα
+αγγλικά πάνω σε ήδη μεταφρασμένα Αγγλικά δεδομένα event) επέστρεψε
+πλήρως Ελληνική απάντηση. Αιτία: `backend/app/services/llm_prompts.py`
+`SHARED_PREAMBLE` είχε "Απάντησε στην ίδια γλώσσα με την ερώτηση του
+χρήστη" -- το μοντέλο προφανώς επηρεάστηκε από το Ελληνικό περιβάλλον
+του υπόλοιπου prompt παρά το Αγγλικό ερώτημα. Fix: αντικαταστάθηκε με
+ρητή "Respond in English... regardless of the language of this prompt or
+of the user's question" -- ΜΙΑ γραμμή στο `SHARED_PREAMBLE`, καλύπτει
+και τα 3 flows (QA/Synthesis/Compare) μονομιάς. Επαληθεύτηκε με 2ο
+πραγματικό call (ίδιο event, ίδια ερώτηση) → απάντηση πλήρως στα Αγγλικά,
+ίδιο `answer_certainty: HIGH`, καθαρό parsing. `pytest -q` 87/87 πριν και
+μετά το prompt αλλαγή (τα prompts είναι static strings, δεν σπάνε tests).
+
+**Ακόμα δεν έγινε (backlog, ενημερωμένο 2026-08-20):**
+- ❌ Synthesis σελίδα (πραγματικό UI, το route υπάρχει μόνο ως placeholder)
+- ❌ Compare σελίδα (το route υπάρχει μόνο ως placeholder)
+- ❌ Dashboard με τα analytics charts (το route υπάρχει μόνο ως placeholder)
+- ❌ `analytics.ts` resource module (Power Index/Gap/Window Score/Optimal Periods)
 - ❌ Docker Compose πλήρες stack (api+frontend services· σήμερα μόνο `db`)
 - ❌ README.md (δεν έχει γραφτεί -- το CLAUDE.md λέει ρητά ότι ο άνθρωπος-αναγνώστης διαβάζει αυτό, όχι το CLAUDE.md)
 

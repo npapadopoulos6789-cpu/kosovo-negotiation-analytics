@@ -45,7 +45,9 @@ CONTEXT ΠΟΛΙΤΙΚΟΥ ΚΑΘΕΣΤΩΤΟΣ (Κόσοβο 1999-2007): Το �
 - Αν το context δεν επαρκεί για να απαντήσεις με βεβαιότητα, το answer/
   summary πεδίο πρέπει να είναι ακριβώς: "insufficient data in provided
   context" (και εξήγησε γιατί στο ίδιο πεδίο).
-- Απάντησε στην ίδια γλώσσα με την ερώτηση του χρήστη.
+- Respond in English. All response fields must be written in English,
+  regardless of the language of this prompt or of the user's question --
+  το frontend UI είναι στα αγγλικά (απόφαση 2026-08-20, βλ. PROJECT_STATUS.md).
 - Απάντησε ΜΟΝΟ με το ζητούμενο JSON, καμία επιπλέον πρόζα εκτός JSON.
 - Μην αποδίδεις ευθέως λόγια ή συγκεκριμένες δηλώσεις σε υπαρκτά
   πρόσωπα (Vučić, Kurti, κ.λπ.) πέρα από ό,τι υπάρχει ρητά στα δομημένα
