@@ -1,0 +1,4 @@
+# *.sh ΠΑΝΤΑ LF, ανεξάρτητα από core.autocrlf -- αλλιώς σε Windows
+# checkout γίνεται CRLF, το shebang (#!/bin/sh) σπάει μέσα σε Linux
+# container (Docker), confusing "exec format error" ή "not found".
+*.sh text eol=lf

@@ -25,6 +25,54 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+    # Χρειάζεται ρητά για το api's "depends_on: condition: service_healthy"
+    # παρακάτω -- χωρίς αυτό, το api θα ξεκινούσε ταυτόχρονα με τη βάση
+    # (μόνο "container started", όχι "accepting connections") και το
+    # πρώτο alembic upgrade θα απέτυχε σε race condition.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kosovo_user -d kosovo_analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # Φορτώνει DATABASE_URL/JWT_SECRET_KEY/ANTHROPIC_API_KEY από το ήδη
+    # υπάρχον backend/.env (ΔΕΝ committed, βλ. .gitignore) -- τίποτα
+    # καινούριο να διαχειριστείς χειροκίνητα.
+    env_file:
+      - ./backend/.env
+
+    environment:
+      # Override του DATABASE_URL από το backend/.env: εκείνο δείχνει σε
+      # "localhost" (για όταν το backend τρέχει έξω από Docker, απευθείας
+      # στο host machine). Μέσα στο Docker network "localhost" θα σήμαινε
+      # το ΙΔΙΟ το api container, όχι το db container -- "db" είναι το
+      # Compose service name, το εσωτερικό Docker DNS το λύνει αυτόματα.
+      DATABASE_URL: postgresql://kosovo_user:kosovo_pass@db:5432/kosovo_analytics
+
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    # ΣΗΜΕΙΩΣΗ: το frontend/src/api/client.ts έχει ήδη hardcoded
+    # BASE_URL="http://localhost:8000" -- αυτό είναι ΣΩΣΤΟ όπως είναι,
+    # όχι κάτι για αλλαγή. Το React code τρέχει μέσα στον browser του
+    # χρήστη (client-side fetch), ΟΧΙ μέσα στο frontend container -- άρα
+    # δεν έχει σημασία το Docker service name ("api"), μόνο το port που
+    # το api container εκθέτει στο ΙΔΙΟ machine (host) που τρέχει ο
+    # browser. Το CORS allow_origin_regex=r"http://localhost:\d+" καλύπτει
+    # ήδη οποιοδήποτε port σερβίρει το frontend (π.χ. αυτό το 3000).
+
 # Δηλώνουμε το volume που αναφέραμε παραπάνω
 volumes:
   postgres_data:

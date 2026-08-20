@@ -442,6 +442,16 @@ def seed_events(db, country_ids: dict):
 def run_seed():
     db = SessionLocal()
     try:
+        # Idempotency guard -- ΧΩΡΙΣ αυτό, ένα δεύτερο τρέξιμο πάνω σε ήδη
+        # γεμάτη ΒΔ θα έσκαγε σε duplicate-key errors (κανένα ON CONFLICT
+        # στο repository layer, ούτε χρειάζεται για χειροκίνητο workflow).
+        # Χρειάστηκε τώρα γιατί το api container του Docker Compose τρέχει
+        # αυτό το script σε ΚΑΘΕ startup (βλ. docker-entrypoint.sh) -- η
+        # χειροκίνητη ροή `python -m app.scripts.seed` παραμένει ίδια.
+        if country_service.list_countries(db):
+            print("Seed data already present -- skipping (idempotent run_seed).")
+            return
+
         print("Δημιουργία χωρών/δρώντων...")
         country_ids = seed_countries(db)
         print("Δημιουργία indicators...")
