@@ -1,8 +1,9 @@
 // Καθρεφτίζουν 1:1 τα Pydantic schemas του backend (app/schemas/*.py).
 // Ενα resource τη φορά -- Country, Indicator, NegotiationEvent μπήκαν ήδη.
-// Analytics/NegotiationAnalysis (synthesis/compare) ΔΕΝ έχουν μπει ακόμα --
-// σκόπιμα, αφού κάνουν πραγματικά paid LLM calls και χτίζονται ξεχωριστά,
-// με ρητή επίβλεψη.
+// NegotiationAnalysis εδώ ΜΟΝΟ το per-event Q&A σχήμα (POST
+// /negotiation-analyses/) -- SynthesisCreate/CompareCreate ΔΕΝ έχουν μπει
+// ακόμα, χτίζονται σε ξεχωριστό βήμα με ρητή επίβλεψη (πραγματικά paid
+// LLM calls, βλ. PROJECT_STATUS.md).
 
 // ---------- Country ----------
 
@@ -97,3 +98,23 @@ export type NegotiationEventCreate = Omit<NegotiationEvent, "id" | "participants
   participants?: ParticipantCreate[];
 };
 export type NegotiationEventUpdate = Partial<NegotiationEventCreate>;
+
+// ---------- NegotiationAnalysis (per-event LLM Q&A μόνο, βλ. σχόλιο πάνω) ----------
+
+// Αντιστοιχεί στο NegotiationAnalysisRead
+export interface NegotiationAnalysis {
+  id: number;
+  negotiation_event_id: number | null;
+  is_synthesis: boolean;
+  user_question: string;
+  llm_answer: string | null;
+  model_used: string | null;
+  created_at: string; // ISO datetime string
+}
+
+// Αντιστοιχεί στο NegotiationAnalysisCreate -- negotiation_event_id πάντα
+// ορισμένο εδώ (per-event Q&A, όχι synthesis)
+export interface NegotiationAnalysisCreate {
+  negotiation_event_id: number;
+  user_question: string;
+}
