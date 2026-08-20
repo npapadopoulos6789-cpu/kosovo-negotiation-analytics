@@ -118,3 +118,57 @@ export interface NegotiationAnalysisCreate {
   negotiation_event_id: number;
   user_question: string;
 }
+
+// Αντιστοιχεί στο SynthesisCreate -- POST /synthesis, χωρίς negotiation_event_id
+export interface SynthesisCreate {
+  user_question: string;
+}
+
+// Αντιστοιχεί στο CompareCreate -- POST /compare, καμία free-text ερώτηση
+export interface CompareCreate {
+  event_a_id: number;
+  event_b_id: number;
+}
+
+// ---------- Parsed σχήματα του analysis.llm_answer ----------
+// ΠΡΟΣΟΧΗ: αυτά ΔΕΝ είναι Pydantic response schemas -- το backend αποθηκεύει
+// το llm_answer ως raw JSON string (βλ. NegotiationAnalysis.llm_answer:
+// string). Το σχήμα ΜΕΣΑ σε αυτό το string ορίζεται από τα task prompts στο
+// backend/app/services/llm_prompts.py (QA_TASK/SYNTHESIS_TASK/COMPARE_TASK)
+// -- τρία ΔΙΑΦΟΡΕΤΙΚΑ σχήματα, ένα ανά flow. Ο caller (σελίδα) ξέρει ποιο
+// flow έκανε το call και περνάει το σωστό variant στο LLMAnswerCard.
+
+export type AnswerCertainty = "HIGH" | "MEDIUM" | "LOW" | "INSUFFICIENT_DATA";
+
+export interface QAAnswer {
+  answer: string;
+  answer_certainty: AnswerCertainty;
+  data_gaps_noted: string[];
+}
+
+export interface SynthesisComparisonRow {
+  event_id: number;
+  title: string;
+  year: number;
+  window_score: number | null;
+  ripeness_status: string | null;
+  agrees: boolean;
+  explanation: string;
+}
+
+export interface SynthesisAnswer {
+  summary: string;
+  quantitative_qualitative_comparison: SynthesisComparisonRow[];
+  central_finding: string;
+  answer_certainty: AnswerCertainty;
+  data_gaps_noted: string[];
+}
+
+export interface CompareAnswer {
+  zopa_difference: string;
+  power_comparison: string;
+  ripeness_difference: string;
+  central_contrast: string;
+  answer_certainty: AnswerCertainty;
+  data_gaps_noted: string[];
+}

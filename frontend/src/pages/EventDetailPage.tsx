@@ -145,23 +145,31 @@ export function EventDetailPage() {
         {askMutation.isError && <ErrorState error={askMutation.error} />}
         {askMutation.isSuccess && (
           <div style={{ marginTop: "1rem" }}>
-            <LLMAnswerCard analysis={askMutation.data} />
+            <LLMAnswerCard analysis={askMutation.data} variant="qa" />
           </div>
         )}
 
         <h3 style={{ marginTop: "1.5rem" }}>Past questions</h3>
         {pastAnalyses.isLoading && <LoadingState label="Loading past questions…" />}
         {pastAnalyses.error && <ErrorState error={pastAnalyses.error} />}
-        {pastAnalyses.data && pastAnalyses.data.length === 0 && (
-          <EmptyState label="No questions asked about this event yet." />
-        )}
-        <div style={{ display: "grid", gap: "0.75rem" }}>
-          {pastAnalyses.data
-            ?.filter((a) => !askMutation.data || a.id !== askMutation.data.id)
-            .map((a) => (
-              <LLMAnswerCard key={a.id} analysis={a} />
-            ))}
-        </div>
+        {/* [COMPARE] χρησιμοποιεί το event_a_id ως FK -- ίδιο negotiation_event_id
+            με το per-event Q&A, άρα φιλτράρουμε το πρόθεμα εδώ ώστε compare
+            results (διαφορετικό JSON σχήμα) να μην εμφανιστούν σαν Q&A. */}
+        {(() => {
+          const qaOnly = pastAnalyses.data?.filter((a) => !a.user_question.startsWith("[COMPARE]"));
+          return (
+            <>
+              {qaOnly && qaOnly.length === 0 && <EmptyState label="No questions asked about this event yet." />}
+              <div style={{ display: "grid", gap: "0.75rem" }}>
+                {qaOnly
+                  ?.filter((a) => !askMutation.data || a.id !== askMutation.data.id)
+                  .map((a) => (
+                    <LLMAnswerCard key={a.id} analysis={a} variant="qa" />
+                  ))}
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
