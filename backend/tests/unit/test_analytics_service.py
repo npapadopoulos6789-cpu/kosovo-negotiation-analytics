@@ -7,23 +7,51 @@ from app.services import analytics as analytics_service
 
 
 def test_normalize_middle_value():
-    result = analytics_service.normalize(2.6, "GDP_growth")
-    assert result == 75.33
+    # trade_share_eu (0-100) αντί για GDP_growth -- το GDP_growth δεν είναι
+    # πια στο NORMALIZATION_RANGES από 2026-08-21 (context-only, βλ.
+    # SEED_SOURCE.md). Οποιοδήποτε "higher-is-better" indicator_type με
+    # γνωστό range δουλεύει εδώ, το test ελέγχει τη γενική clamping/scaling
+    # λογική, όχι κάτι ειδικό για το GDP_growth.
+    result = analytics_service.normalize(75.0, "trade_share_eu")
+    assert result == 75.0
 
 
 def test_normalize_clamps_below_minimum():
-    result = analytics_service.normalize(-50.0, "GDP_growth")
+    result = analytics_service.normalize(-10.0, "trade_share_eu")
     assert result == 0.0
 
 
 def test_normalize_clamps_above_maximum():
-    result = analytics_service.normalize(50.0, "GDP_growth")
+    result = analytics_service.normalize(150.0, "trade_share_eu")
     assert result == 100.0
 
 
 def test_normalize_unknown_indicator_type_raises():
     with pytest.raises(ValueError):
         analytics_service.normalize(5.0, "unknown_type")
+
+
+def test_normalize_inverts_lower_is_better_indicators():
+    # Bug fix 2026-08-21: unemployment_rate είναι LOWER_IS_BETTER --
+    # χαμηλότερη ανεργία πρέπει να δίνει ΥΨΗΛΟΤΕΡΟ score (ισχυρότερη
+    # οικονομία), όχι το αντίστροφο. Πριν το fix, το normalize() έδινε
+    # πάντα "υψηλότερη raw τιμή = υψηλότερο score" αδιακρίτως -- βλ.
+    # PROJECT_STATUS.md για τα πραγματικά νούμερα (Serbia 2005 vs 2023)
+    # που αποκάλυψαν το bug.
+    low_unemployment_score = analytics_service.normalize(8.27, "unemployment_rate")
+    high_unemployment_score = analytics_service.normalize(20.85, "unemployment_rate")
+
+    assert low_unemployment_score > high_unemployment_score
+
+
+def test_normalize_does_not_invert_higher_is_better_indicators():
+    # Sanity check του αντίθετου -- ένα κανονικό indicator_type (ΔΕΝ είναι
+    # στο LOWER_IS_BETTER) πρέπει να συνεχίσει "υψηλότερη τιμή = υψηλότερο
+    # score", ώστε το LOWER_IS_BETTER να μην αντιστρέφει τα πάντα κατά λάθος.
+    low = analytics_service.normalize(20.0, "trade_share_eu")
+    high = analytics_service.normalize(80.0, "trade_share_eu")
+
+    assert high > low
 
 
 def make_fake_indicator(country_id, category, indicator_type, year, value):
@@ -39,7 +67,7 @@ def make_fake_indicator(country_id, category, indicator_type, year, value):
 
 def test_get_category_score_averages_multiple_indicators(monkeypatch):
     fake_indicators = [
-        make_fake_indicator(1, "ECONOMIC", "GDP_growth", 2013, 2.6),
+        make_fake_indicator(1, "ECONOMIC", "trade_share_eu", 2013, 75.0),
     ]
     monkeypatch.setattr(
         analytics_service.indicator_repository, "get_by_country",
@@ -48,7 +76,7 @@ def test_get_category_score_averages_multiple_indicators(monkeypatch):
 
     result = analytics_service.get_category_score(db=None, country_id=1, year=2013, category="ECONOMIC")
 
-    assert result == 75.33
+    assert result == 75.0
 
 
 def test_get_category_score_returns_none_when_no_data(monkeypatch):

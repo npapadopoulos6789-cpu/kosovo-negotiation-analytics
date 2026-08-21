@@ -3,20 +3,59 @@
 Periods, Best Moments. ΚΑΝΕΝΑΣ υπολογισμός εδώ δεν καλεί LLM -- όλα
 είναι ντετερμινιστικά, ίδιο input δίνει πάντα ίδιο output.
 """
+import math
+
 from sqlalchemy.orm import Session
 
 from app.repositories import indicator as indicator_repository
 from app.repositories import negotiation_event as event_repository
 
 
+# Μεθοδολογική αναθεώρηση 2026-08-21 (βλ. SEED_SOURCE.md για πλήρες
+# σκεπτικό + πηγές, PROJECT_STATUS.md για το πλήρες change-log):
+# - ECONOMIC category = GDP_absolute_usd + GDP_growth + unemployment_rate
+#   μαζί, ισοβαρή μέσο όρο (βλ. get_category_score). GDP_absolute_usd
+#   προστέθηκε (μέγεθος οικονομίας, national-power convention) ΧΩΡΙΣ να
+#   αφαιρεθεί το GDP_growth (ρυθμός μεταβολής) -- και τα δύο χρειάζονται:
+#   μόνο το GDP_growth έπιανε το σοκ του 1999 (P1), μόνο το
+#   GDP_absolute_usd έπιανε τη δομική ασυμμετρία μεγέθους Serbia/Kosovo.
+# - troop_presence_index -> military_expenditure_pct_gdp: το MILITARY
+#   category μετράει τώρα το ΙΔΙΟ indicator_type/πηγή (World Bank/SIPRI)
+#   και για τις δύο χώρες -- πριν συγκρίναμε Serbia spending% με Kosovo
+#   researcher-estimated foreign troop presence, εννοιολογικά ασύμβατα.
+#   troop_presence_index παραμένει context-only.
 NORMALIZATION_RANGES = {
     "GDP_growth": (-20.0, 10.0),
+    # $1B-$100B, ΛΟΓΑΡΙΘΜΙΚΗ κλίμακα (βλ. LOG_SCALE_INDICATORS) -- γραμμική
+    # κλίμακα εδώ έκανε το Kosovo GDP component σχεδόν σταθερό χαμηλό
+    # (5-10.5% normalized, δομικό "ταβάνι" ανεξάρτητο από πραγματική
+    # οικονομική δυναμική). Log-scale: Kosovo 2008-2023 -> 35.8%-51.0%,
+    # πραγματικό εύρος διακύμανσης αντί για σχεδόν-σταθερή τιμή. Όριο
+    # $100B ίδιο βαθμονομημένο σκεπτικό με πριν (Croatia/Bulgaria, χωρίς
+    # τη Ρουμανία ως outlier)· κάτω όριο $1B επιλέχθηκε ρητά ΚΑΤΩ από το
+    # μικρότερο πραγματικό Kosovo GDP ($5.2B, 2008) ώστε να μην clamp-άρει
+    # στο μηδέν.
+    "GDP_absolute_usd": (1_000_000_000.0, 100_000_000_000.0),
     "freedom_house_score": (0.0, 100.0),
-    "troop_presence_index": (0.0, 100.0),
     "unemployment_rate": (0.0, 60.0),
     "trade_share_eu": (0.0, 100.0),
     "military_expenditure_pct_gdp": (0.0, 8.0),
 }
+
+# indicator_types όπου ΧΑΜΗΛΟΤΕΡΗ raw τιμή σημαίνει ΙΣΧΥΡΟΤΕΡΗ θέση (π.χ.
+# ανεργία) -- το normalize() τα αντιστρέφει. Bug fix 2026-08-21: πριν,
+# ΚΑΘΕ indicator_type έπαιρνε "υψηλότερη raw τιμή = υψηλότερο score"
+# αδιακρίτως, οπότε π.χ. Serbia 2023 (ανεργία 8.27%, υγιής οικονομία)
+# έπαιρνε ΧΑΜΗΛΟΤΕΡΟ economic score από το 2005 (ανεργία 20.85%,
+# χειρότερη οικονομία) -- ανάποδη κατεύθυνση. Confirmed με πραγματικά
+# νούμερα, βλ. PROJECT_STATUS.md.
+LOWER_IS_BETTER = {"unemployment_rate"}
+
+# indicator_types όπου η κλίμακα είναι λογαριθμική, όχι γραμμική --
+# κατάλληλο για μεγέθη με διαφορά τάξεων μεγέθους (στάνταρ οικονομετρική
+# πρακτική). Τα δύο άκρα στο NORMALIZATION_RANGES ερμηνεύονται ΠΡΙΝ το
+# log10 (raw USD), όχι ήδη-λογαριθμισμένα.
+LOG_SCALE_INDICATORS = {"GDP_absolute_usd"}
 
 
 def normalize(value: float, indicator_type: str) -> float:
@@ -24,8 +63,19 @@ def normalize(value: float, indicator_type: str) -> float:
         raise ValueError(f"Δεν υπάρχουν normalization όρια για '{indicator_type}'")
 
     min_val, max_val = NORMALIZATION_RANGES[indicator_type]
+
+    if indicator_type in LOG_SCALE_INDICATORS:
+        # clamp πρώτα στο raw εύρος (πριν το log10) -- αλλιώς log10(0) ή
+        # log10 αρνητικού θα έσκαγε για τιμές έξω από το εύρος.
+        value = max(min_val, min(value, max_val))
+        value = math.log10(value)
+        min_val = math.log10(min_val)
+        max_val = math.log10(max_val)
+
     clamped = max(min_val, min(value, max_val))
     normalized = (clamped - min_val) / (max_val - min_val) * 100
+    if indicator_type in LOWER_IS_BETTER:
+        normalized = 100 - normalized
     return round(normalized, 2)
 
 
