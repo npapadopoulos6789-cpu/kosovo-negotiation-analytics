@@ -1014,3 +1014,43 @@ Power Index (SNPI). Γνωστή κριτική στο CINC γενικά (Carneg
 · Carnegie Endowment for International Peace (2026), ["Methods of National Power Analysis: Pitfalls and Best Practices"](https://carnegieendowment.org/research/2026/04/methods-of-national-power-analysis-pitfalls-and-best-practices)
 · Μεθοδολογική επισκόπηση εναλλακτικών δεικτών (GPI/CNP/Elcano/DiME/SNPI):
 [Oxford Academic, *Chinese Journal of International Politics*](https://academic.oup.com/cjip/article/19/3/237/8711324).
+
+---
+
+## 10. Window Score — διόρθωση κατεύθυνσης του κοινωνικού συστατικού (2026-08-21)
+
+**Τι άλλαξε:** το 20% "κοινωνικό" κομμάτι του Window Score
+(`calculate_social_stability_score`, πρώην `calculate_social_pressure_score`
+στο `services/analytics.py`) αντιστράφηκε. Πριν: `100 - avg_social` --
+δηλαδή περισσότερη **αστάθεια** (χαμηλότερο SOCIAL_UNREST category score)
+αύξανε το Window Score, με το σκεπτικό "η αστάθεια δημιουργεί πίεση προς
+συμβιβασμό". Μετά: `avg_social` απευθείας -- περισσότερη **σταθερότητα**
+αυξάνει το Window Score.
+
+**Γιατί η παλιά κατεύθυνση ήταν λάθος:** η διπλωματική δεν υποστηρίζει
+"αστάθεια → πίεση → ευκολότερη συμφωνία". Υποστηρίζει το αντίθετο μηχανισμό
+-- εσωτερική πολιτική αστάθεια **περιορίζει** την ικανότητα μιας ηγεσίας να
+κάνει υποχωρήσεις, όχι το αντίστροφο. Η ίδια η διπλωματική το θεμελιώνει
+ρητά μέσω του Two-Level Game του Putnam (ήδη καταγεγραμμένο σε αυτό το
+αρχείο, §7, "Research conclusions", από το Κεφ. 4 της διπλωματικής):
+*"Οι διαπραγματεύσεις μένουν σε φαύλο κύκλο προσωρινών συμβιβασμών
+(Two-Level Game του Putnam: εσωτερικές πιέσεις περιορίζουν το win set)."*
+Μεγαλύτερη εσωτερική αστάθεια → στενότερο win set → πιο δύσκολη, όχι πιο
+εύκολη, συμφωνία. Ένα ηγέτης με ασταθή εσωτερική βάση δεν έχει "λιγότερο να
+χάσει" από μια συμφωνία -- έχει ΜΕΓΑΛΥΤΕΡΟ πολιτικό κόστος να τη
+υπερασπιστεί εγχώρια. Συγκεκριμένο παράδειγμα ήδη στα δεδομένα: το E4
+"Standards Before Status" (§2) περιγράφει τις εθνοτικές ταραχές του 2004
+(«UNMIK έχασε προσωρινά τον έλεγχο») ως περίοδο ΧΩΡΙΣ πρόοδο, όχι ως
+περίοδο διευκόλυνσης προς συμφωνία -- συνεπές με τη νέα κατεύθυνση, ασυνεπές
+με την παλιά.
+
+**Επίδραση στα ήδη-κλειδωμένα αποτελέσματα:** βλ. PROJECT_STATUS.md / τα
+ενημερωμένα docstrings στο `test_validation_targets.py` για τα ακριβή νέα
+νούμερα μετά τη διόρθωση -- η αλλαγή στο 20% του Window Score μπορεί να
+αλλάξει ποιο έτος βγαίνει `find_optimal_mutual_compromise_period`.
+
+**Ονοματολογία:** το concept μετονομάστηκε από "social pressure" σε
+"social stability" παντού όπου εμφανιζόταν (κώδικας, σχόλια, LLM system
+prompt, README, CLAUDE.md, frontend glossary) ώστε το όνομα να ταιριάζει
+με τη νέα κατεύθυνση -- ίδιο υποκείμενο δεδομένο (μέσος όρος SOCIAL_UNREST
+category score των δύο χωρών), απλά όχι πια αντεστραμμένο.

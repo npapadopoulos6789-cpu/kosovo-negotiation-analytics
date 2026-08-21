@@ -115,13 +115,21 @@ hide them behind smooth-looking charts.
   in [SEED_SOURCE.md](SEED_SOURCE.md).
 - **The weight percentages are my own design, not a citation.** Power Index
   (40% Economic / 40% Military / 20% Social) and Window Score (50% power
-  symmetry / 30% mutual decline / 20% social pressure) reflect my own
+  symmetry / 30% mutual decline / 20% social stability) reflect my own
   theoretical judgment about what matters most in this context -- they
   aren't drawn from an established methodology, and I'm not aware of a
   citable source for these specific splits. The underlying *data* is sourced
   and verifiable (see above); the *weighting* is my own design choice. Full
   discussion, including why this isn't the same as the CINC national-power
   index it takes inspiration from: [SEED_SOURCE.md §9](SEED_SOURCE.md).
+- **Social stability, not instability, contributes positively to the Window
+  Score** (updated 2026-08-21). Earlier this credited *instability* as
+  "pressure toward compromise" -- backwards. Per the thesis (Putnam's
+  Two-Level Game, cited in [SEED_SOURCE.md §7](SEED_SOURCE.md)), domestic
+  political instability narrows a leader's negotiating "win set" and raises
+  the political cost of concessions, making agreement harder, not easier.
+  Full rationale and a concrete example from the seed data:
+  [SEED_SOURCE.md §10](SEED_SOURCE.md).
 
 ## Tech stack
 

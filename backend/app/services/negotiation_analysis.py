@@ -1,4 +1,5 @@
 import json
+import re
 
 from sqlalchemy.orm import Session
 
@@ -178,11 +179,82 @@ def _build_compare_context(db: Session, event_a: NegotiationEvent, event_b: Nego
     }
 
 
+_GREEK_CHAR_RE = re.compile(r"[Ͱ-Ͽἀ-῿]")
+
+
+def _language_directive(user_question: str) -> str:
+    """
+    Ρητή, ΚΑΤΟΝΟΜΑΣΜΕΝΗ οδηγία γλώσσας, βάσει server-side ανίχνευσης
+    ελληνικών χαρακτήρων -- ΟΧΙ εμπιστοσύνη στο LLM να ανιχνεύσει/μιμηθεί
+    μόνο του τη γλώσσα της ερώτησης. Επιβεβαιωμένο εμπειρικά 2026-08-21
+    (live test, claude-sonnet-4-6, temperature=0): ένα "μαλακό" instruction
+    ("απάντησε στην ίδια γλώσσα με την ερώτηση") ΔΕΝ ακολουθήθηκε αξιόπιστα
+    σε ελληνική ερώτηση -- δοκιμάστηκε ΔΥΟ φορές, και στην αρχή του system
+    prompt ΚΑΙ επαναλαμβανόμενο στο user message, και τις δύο φορές η
+    απάντηση ήρθε στα αγγλικά. Ρητή, κατονομασμένη οδηγία ("απάντησε στα
+    ΕΛΛΗΝΙΚΑ") ήταν απαραίτητη -- λιγότερο συμπερασματικό βήμα για το
+    μοντέλο από "ανίχνευσε τη γλώσσα και μίμησέ την".
+    """
+    if _GREEK_CHAR_RE.search(user_question):
+        return (
+            "Η ερώτηση παραπάνω είναι στα ΕΛΛΗΝΙΚΑ. Απάντησε ΑΠΟΚΛΕΙΣΤΙΚΑ "
+            "στα ΕΛΛΗΝΙΚΑ σε όλα τα free-text πεδία (όχι στα ονόματα πεδίων "
+            "ή στις τιμές enum πεδίων)."
+        )
+    return (
+        "Απάντησε σε όλα τα free-text πεδία στην ίδια γλώσσα με αυτή την "
+        "ερώτηση (όχι στα ονόματα πεδίων ή στις τιμές enum πεδίων)."
+    )
+
+
 def _build_user_message(user_question: str, context: dict) -> str:
+    # Η θέση της οδηγίας γλώσσας (πριν/μετά το context) δοκιμάστηκε και στις
+    # δύο σειρές 2026-08-21 -- ΚΑΜΙΑ δεν αρκούσε από μόνη της για ελληνική
+    # ερώτηση, παρόλο που η ίδια ακριβώς οδηγία λειτουργούσε τέλεια σε
+    # απομονωμένο, μικρό prompt (χωρίς το τεράστιο αγγλικό context
+    # events/indicators/sources να "τραβάει" τη γλώσσα). Το instruction
+    # μένει εδώ ως best-effort για ΜΗ ελληνικές, μη αγγλικές ερωτήσεις
+    # (untested, καμία εγγύηση) -- η πραγματική εγγύηση για ελληνικά είναι
+    # το ξεχωριστό μεταφραστικό call, βλ. _translate_json_to_greek παρακάτω
+    # και create_analysis.
     return (
         f"ΕΡΩΤΗΣΗ ΧΡΗΣΤΗ: {user_question}\n\n"
-        f"CONTEXT (JSON):\n{json.dumps(context, ensure_ascii=False, indent=2)}"
+        f"CONTEXT (JSON):\n{json.dumps(context, ensure_ascii=False, indent=2)}\n\n"
+        f"({_language_directive(user_question)})"
     )
+
+
+def _translate_json_to_greek(raw_json_text: str) -> str:
+    """
+    Δεύτερο, ΞΕΧΩΡΙΣΤΟ, μικρό LLM call που μεταφράζει ΜΟΝΟ τα free-text
+    πεδία ενός ήδη-παραγμένου JSON σε ελληνικά, κρατώντας ΑΚΡΙΒΩΣ το ίδιο
+    σχήμα/ονόματα πεδίων/enum τιμές.
+
+    Γιατί όχι απλά "απάντησε στα ελληνικά" μέσα στο ΙΔΙΟ call: 4 διαδοχικά
+    live tests 2026-08-21 (βλ. SEED_SOURCE.md) επιβεβαίωσαν ότι το μοντέλο
+    αγνοούσε αξιόπιστα αυτή την οδηγία -- σε 3 διαφορετικές θέσεις μέσα στο
+    prompt -- όταν συνόδευε ένα τεράστιο, αμιγώς αγγλικό context block
+    (events/indicators/sources, seed data στα αγγλικά). Στο ΙΔΙΟ ακριβώς
+    isolated test χωρίς το context, η οδηγία δούλευε άψογα. Άρα: άφησε την
+    κύρια ανάλυση να τρέξει στο φυσικό της (αγγλικό) mode, μετά ένα μικρό,
+    καθαρό call ΜΟΝΟ για μετάφραση -- χωρίς ανταγωνιστικό context, πολύ πιο
+    αξιόπιστο.
+    """
+    system = (
+        "Είσαι μεταφραστής τεχνικού/αναλυτικού κειμένου, Αγγλικά προς "
+        "Ελληνικά. Σου δίνεται ένα JSON object. Επίστρεψε το ΙΔΙΟ ΑΚΡΙΒΩΣ "
+        "JSON σχήμα, με ΜΟΝΟ τις τιμές των free-text πεδίων μεταφρασμένες "
+        "στα ελληνικά (π.χ. answer, summary, central_finding, explanation, "
+        "zopa_difference, power_comparison, ripeness_difference, "
+        "central_contrast, και τα strings μέσα σε λίστες όπως "
+        "data_gaps_noted, title). ΜΗΝ αλλάξεις: τα ονόματα πεδίων, τη δομή "
+        "του JSON, ή τις τιμές οποιουδήποτε enum/boolean/αριθμητικού "
+        "πεδίου (π.χ. answer_certainty, agrees, event_id, year, "
+        "window_score -- αυτά μένουν ΑΚΡΙΒΩΣ ίδια, χωρίς μετάφραση). "
+        "Απάντησε ΑΠΟΚΛΕΙΣΤΙΚΑ με το μεταφρασμένο JSON, καμία άλλη πρόζα."
+    )
+    result = llm_client.call_llm(system, raw_json_text)
+    return result["raw_text"]
 
 
 def _build_compare_message(context: dict) -> str:
@@ -216,12 +288,20 @@ def create_analysis(db: Session, data: NegotiationAnalysisCreate) -> Negotiation
     # Αν αυτό σηκώσει LLMCallError, ΔΕΝ φτάνουμε ποτέ στο analysis_repository.create --
     # άρα δεν αποθηκεύεται ποτέ μισή/άκυρη εγγραφή (βλ. main.py exception handler).
     result = llm_client.call_llm(system_prompt, user_message)
+    raw_text = result["raw_text"]
+
+    # Ξεχωριστό μεταφραστικό call αν η ερώτηση είναι στα ελληνικά -- βλ.
+    # _translate_json_to_greek docstring για το γιατί δεν εμπιστευόμαστε
+    # ένα combined "απάντησε απευθείας στα ελληνικά" μέσα στο βασικό call.
+    # Ίδια εγγύηση με παραπάνω: LLMCallError εδώ ΔΕΝ αποθηκεύει τίποτα.
+    if _GREEK_CHAR_RE.search(data.user_question):
+        raw_text = _translate_json_to_greek(raw_text)
 
     analysis = NegotiationAnalysis(
         negotiation_event_id=data.negotiation_event_id,
         is_synthesis=is_synthesis,
         user_question=data.user_question,
-        llm_answer=result["raw_text"],
+        llm_answer=raw_text,
         model_used=result["model"],
     )
     return analysis_repository.create(db, analysis)

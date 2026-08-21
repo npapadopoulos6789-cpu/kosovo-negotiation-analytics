@@ -34,6 +34,16 @@ MILITARY indicator, World Bank/SIPRI MS.MIL.XPND.CD, λογαριθμική κλ
 $500K-$5δισ) -- πλήρες σκεπτικό/πηγές: SEED_SOURCE.md §3.1/§3.6/§3.7. Όλα
 τα P1-P4 assertions (κατεύθυνση, όχι ακριβείς τιμές) παρέμειναν robust μετά
 την προσθήκη -- μόνο τα απόλυτα νούμερα άλλαξαν, ενημερώθηκαν παρακάτω.
+
+ΤΡΙΤΗ ΜΕΘΟΔΟΛΟΓΙΚΗ ΑΝΑΘΕΩΡΗΣΗ 2026-08-21 (διαφορετική ημέρα): διόρθωση
+κατεύθυνσης στο 20% κοινωνικό συστατικό του Window Score --
+`calculate_social_stability_score` (πρώην `calculate_social_pressure_score`)
+πλέον επιστρέφει το ακατέργαστο SOCIAL_UNREST category score (σταθερότητα
+συνεισφέρει θετικά), όχι το `100 - score` (αστάθεια συνεισφέρει θετικά)
+που ίσχυε πριν -- πλήρες σκεπτικό/παραπομπή στη διπλωματική (Two-Level
+Game του Putnam): SEED_SOURCE.md §10. Επηρεάζει ΜΟΝΟ το Window Score (P3,
+regression test) -- το P1/P2/P4/P5 (Power Index/Power Gap, δεν αγγίζουν το
+Window Score) παρέμειναν byte-ίδια, επιβεβαιωμένο.
 """
 import pytest
 from fastapi.testclient import TestClient
@@ -197,6 +207,19 @@ def test_2013_is_optimal_window(db, serbia_id, kosovo_id):
     2023=55.0 (previous_year=2013) -- 2013 ΕΞΑΚΟΛΟΥΘΕΙ να κερδίζει, μάλιστα
     με μεγαλύτερο περιθώριο (0.79 αντί 0.62). Τρίτη ανεξάρτητη επιβεβαίωση
     της ευστάθειας του P3 εύρηματος.
+
+    ΤΡΙΤΗ αναθεώρηση, ΔΙΑΦΟΡΕΤΙΚΗ ημέρα (2026-08-21) -- διόρθωση
+    κατεύθυνσης στο 20% κοινωνικό συστατικό του Window Score (βλ.
+    SEED_SOURCE.md §10): `calculate_social_stability_score` (πρώην
+    `calculate_social_pressure_score`) πλέον επιστρέφει το ΑΚΑΤΕΡΓΑΣΤΟ
+    (όχι αντεστραμμένο) SOCIAL_UNREST category score -- κοινωνική
+    ΣΤΑΘΕΡΟΤΗΤΑ συνεισφέρει θετικά, όχι αστάθεια (η διπλωματική δείχνει
+    ότι η αστάθεια αυξάνει το πολιτικό κόστος υποχώρησης, δυσκολεύει τη
+    συμφωνία). Αποτέλεσμα: 2013=52.89 (previous_year=2007) vs 2023=51.2
+    (previous_year=2013) -- 2013 ΕΞΑΚΟΛΟΥΘΕΙ να κερδίζει, με ΑΚΟΜΑ
+    μεγαλύτερο περιθώριο (1.69 αντί 0.79). Τέταρτη ανεξάρτητη επιβεβαίωση
+    της ευστάθειας του P3 εύρηματος -- το "2013 είναι η στιγμή ωρίμανσης"
+    επιβίωσε τέσσερις ξεχωριστές μεθοδολογικές αναθεωρήσεις.
     """
     result = analytics_service.find_optimal_mutual_compromise_period(db, serbia_id, kosovo_id)
 
@@ -297,9 +320,11 @@ def test_window_score_endpoint_autocomputes_previous_year(serbia_id, kosovo_id):
     Μετά τη διόρθωση, το endpoint αυτο-υπολογίζει το previous_year με τον
     ίδιο _most_recent_year_with_data helper όταν ο caller δεν το δίνει --
     οπότε τα δύο endpoints πρέπει τώρα να συμφωνούν. Τιμή ενημερωμένη
-    2026-08-21 μετά τη μεθοδολογική αναθεώρηση (61.98 -> 56.75), ΚΑΙ ξανά
-    μετά τη δεύτερη αναθεώρηση ίδιας ημέρας (+FDI, +military_expenditure_usd:
-    56.75 -> 55.79, βλ. test_2013_is_optimal_window για το πλήρες σκεπτικό).
+    2026-08-21 μετά τη μεθοδολογική αναθεώρηση (61.98 -> 56.75), ξανά μετά
+    τη δεύτερη αναθεώρηση ίδιας ημέρας (+FDI, +military_expenditure_usd:
+    56.75 -> 55.79), και ΞΑΝΑ μετά την τρίτη αναθεώρηση, διαφορετική ημέρα
+    (διόρθωση κατεύθυνσης social component, 55.79 -> 52.89 -- βλ.
+    test_2013_is_optimal_window για το πλήρες σκεπτικό).
     """
     client = TestClient(app)
 
@@ -314,5 +339,5 @@ def test_window_score_endpoint_autocomputes_previous_year(serbia_id, kosovo_id):
 
     assert window_score_response.status_code == 200
     assert optimal_response.status_code == 200
-    assert window_score_response.json()["window_score"] == 55.79
-    assert optimal_response.json()["window_score"] == 55.79
+    assert window_score_response.json()["window_score"] == 52.89
+    assert optimal_response.json()["window_score"] == 52.89

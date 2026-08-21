@@ -178,10 +178,44 @@ def test_calculate_trend_score_ignores_increase():
     assert result == 16.67
 
 
+def test_calculate_social_stability_score_direction(monkeypatch):
+    # Διόρθωση κατεύθυνσης 2026-08-21 (πριν: calculate_social_pressure_score,
+    # επέστρεφε 100-avg -- "αστάθεια αυξάνει το Window Score"). Η διπλωματική
+    # δείχνει ότι η αστάθεια ΑΥΞΑΝΕΙ το πολιτικό κόστος υποχώρησης, άρα
+    # δυσκολεύει τη συμφωνία -- η ΣΤΑΘΕΡΟΤΗΤΑ πρέπει να συνεισφέρει θετικά.
+    # Υψηλά SOCIAL_UNREST category scores (=σταθερότερες κοινωνίες, βλ.
+    # NORMALIZATION_RANGES: freedom_house_score higher-is-better) πρέπει να
+    # δίνουν ΥΨΗΛΟ, όχι χαμηλό, social_stability_score.
+    def fake_get_category_score(db, country_id, year, category):
+        return {1: 80.0, 2: 60.0}[country_id]
+
+    monkeypatch.setattr(analytics_service, "get_category_score", fake_get_category_score)
+
+    result = analytics_service.calculate_social_stability_score(
+        db=None, serbia_id=1, kosovo_id=2, year=2013
+    )
+
+    # Μέσος όρος 70.0, ΟΧΙ 100-70=30.0 -- η παλιά (λάθος) κατεύθυνση.
+    assert result == 70.0
+
+
+def test_calculate_social_stability_score_returns_none_if_missing_data(monkeypatch):
+    def fake_get_category_score(db, country_id, year, category):
+        return None if country_id == 2 else 80.0
+
+    monkeypatch.setattr(analytics_service, "get_category_score", fake_get_category_score)
+
+    result = analytics_service.calculate_social_stability_score(
+        db=None, serbia_id=1, kosovo_id=2, year=2013
+    )
+
+    assert result is None
+
+
 def test_calculate_window_score_without_previous_year(monkeypatch):
     monkeypatch.setattr(analytics_service, "calculate_power_gap", lambda db, s, k, y: 20.0)
     monkeypatch.setattr(
-        analytics_service, "calculate_social_pressure_score", lambda db, s, k, y: 60.0
+        analytics_service, "calculate_social_stability_score", lambda db, s, k, y: 60.0
     )
 
     result = analytics_service.calculate_window_score(

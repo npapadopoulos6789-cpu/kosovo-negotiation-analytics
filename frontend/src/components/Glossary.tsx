@@ -43,8 +43,10 @@ const TERMS: GlossaryTerm[] = [
     definition:
       "A composite score estimating how favorable a specific year was for reaching a durable " +
       "agreement, combining power symmetry between the two sides, the trend in that symmetry " +
-      "over time, and social pressure. A high Window Score does not guarantee an agreement was " +
-      "reached or implemented -- see the \"Window Score vs Implementation\" chart for that gap.",
+      "over time, and domestic social stability (not instability -- per the thesis, internal " +
+      "instability raises the political cost of concessions rather than easing them). A high " +
+      "Window Score does not guarantee an agreement was reached or implemented -- see the " +
+      "\"Window Score vs Implementation\" chart for that gap.",
   },
 ];
 

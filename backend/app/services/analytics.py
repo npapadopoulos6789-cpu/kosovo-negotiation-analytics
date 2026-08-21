@@ -170,9 +170,19 @@ def calculate_trend_score(
     return round(min(100.0, avg_decline / 30 * 100), 2)
 
 
-def calculate_social_pressure_score(
+def calculate_social_stability_score(
     db: Session, serbia_id: int, kosovo_id: int, year: int
 ) -> float | None:
+    """
+    ΔΙΟΡΘΩΣΗ ΚΑΤΕΥΘΥΝΣΗΣ 2026-08-21 (πριν: calculate_social_pressure_score,
+    επέστρεφε 100-avg_stability -- "περισσότερη αστάθεια = υψηλότερο
+    Window Score"). Η διπλωματική δείχνει ρητά ότι η εσωτερική αστάθεια
+    ΑΥΞΑΝΕΙ το πολιτικό κόστος μιας υποχώρησης -- δυσκολεύει, όχι
+    διευκολύνει, τη συμφωνία. Άρα η κατεύθυνση αντιστράφηκε: επιστρέφει
+    το ΑΚΑΤΕΡΓΑΣΤΟ (0-100, υψηλότερο=πιο σταθερό) SOCIAL_UNREST category
+    score, όχι το αντεστραμμένο του. Βλ. SEED_SOURCE.md §10 για πλήρες
+    σκεπτικό/παραπομπή.
+    """
     serbia_social = get_category_score(db, serbia_id, year, "SOCIAL_UNREST")
     kosovo_social = get_category_score(db, kosovo_id, year, "SOCIAL_UNREST")
 
@@ -180,7 +190,7 @@ def calculate_social_pressure_score(
         return None
 
     avg_stability = (serbia_social + kosovo_social) / 2
-    return round(100 - avg_stability, 2)
+    return round(avg_stability, 2)
 
 
 def calculate_window_score(
@@ -207,14 +217,14 @@ def calculate_window_score(
                 current_serbia, previous_serbia, current_kosovo, previous_kosovo
             )
 
-    social_pressure = calculate_social_pressure_score(db, serbia_id, kosovo_id, year)
-    if social_pressure is None:
+    social_stability = calculate_social_stability_score(db, serbia_id, kosovo_id, year)
+    if social_stability is None:
         return None
 
     window_score = (
         symmetry_score * 0.50
         + trend_score * 0.30
-        + social_pressure * 0.20
+        + social_stability * 0.20
     )
     return round(window_score, 2)
 
