@@ -59,10 +59,13 @@ FastAPI REST API + React dashboard που μετατρέπει τα ευρήμα
 
 ### Indicator
 - `id`, `country_id` (FK), `category`: enum `ECONOMIC | MILITARY | SOCIAL_UNREST`
-- `indicator_type` (οι 6 τιμές που όντως χρησιμοποιούνται σήμερα: `GDP_growth`,
-  `unemployment_rate`, `trade_share_eu`, `military_expenditure_pct_gdp`,
-  `freedom_house_score`, `troop_presence_index` — βλ. `NORMALIZATION_RANGES` στο
-  `services/analytics.py`, πρέπει να μείνουν συγχρονισμένα)
+- `indicator_type` (οι 9 τιμές που όντως χρησιμοποιούνται σήμερα, ενημερώθηκε
+  2026-08-21: `GDP_growth`, `GDP_absolute_usd`, `unemployment_rate`,
+  `trade_share_eu`, `FDI_net_inflows_pct_gdp`, `military_expenditure_pct_gdp`,
+  `military_expenditure_usd`, `freedom_house_score` — αυτές οι 8 μπαίνουν στο
+  Power Index, βλ. `NORMALIZATION_RANGES` στο `services/analytics.py`, πρέπει
+  να μείνουν συγχρονισμένα· `troop_presence_index` παραμένει context-only,
+  ρητά ΕΚΤΟΣ `NORMALIZATION_RANGES`, βλ. SEED_SOURCE.md §3.6)
 - `year`, `value`, `unit`, `source`, `is_verified`: bool
 
 ### NegotiationEvent
@@ -104,8 +107,11 @@ FastAPI REST API + React dashboard που μετατρέπει τα ευρήμα
    αμοιβαία πτωτική τάση + 20% κοινωνική πίεση. Ντετερμινιστικό, testable.
 5. **Optimal Agreement Period** ανά χώρα: το έτος με το τοπικό μέγιστο Power Index
    της χώρας (στιγμή μέγιστης μοχλευτικής δύναμης). Υλοποίηση: ψάχνει μόνο μέσα στα
-   `KEY_YEARS = [1999, 2005, 2007, 2008, 2013, 2023]` του `services/analytics.py`
-   (τα έτη όπου όντως υπάρχουν indicators seeded), όχι σε όλο το εύρος ετών.
+   `KEY_YEARS = [1998, 1999, 2000, 2005, 2007, 2008, 2013, 2018, 2020, 2023]`
+   του `services/analytics.py` (ενημερώθηκε 2026-08-21· τα έτη όπου όντως
+   υπάρχουν indicators seeded), όχι σε όλο το εύρος ετών. Πλήρες Power Index
+   (και τα τρία categories) υπολογίσιμο μόνο σε 4 από αυτά τα 10 —
+   {2005, 2007, 2013, 2023}, βλ. README Limitations.
 6. **Optimal Mutual Compromise Period**: το έτος με το μέγιστο Window Score (Zartman
    mutually hurting stalemate), ίδιος περιορισμός στα `KEY_YEARS`.
 6b. **Best Moments** (`find_best_moments`): συγκλίνουσα εγκυρότητα (convergent

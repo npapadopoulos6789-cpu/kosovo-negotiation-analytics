@@ -87,6 +87,42 @@ upfront about that:
 
 Full source breakdown per indicator: [SEED_SOURCE.md](SEED_SOURCE.md).
 
+## Limitations
+
+The dataset has real, documented gaps -- I'd rather state them plainly than
+hide them behind smooth-looking charts.
+
+- **The full Power Index (Economic + Military + Social together) is only
+  computable for four years: 2005, 2007, 2013, 2023.** Both countries need
+  data in all three categories the same year, and Freedom House (the only
+  Social indicator) only has values for odd years from 2005 onward. Years
+  with partial data (e.g. 1998-2000, 2008, 2018, 2020) show up as explicit
+  gaps in the dashboard charts, not zeroes.
+- **Kosovo's pre-2008 economic/military data is sparse.** It wasn't tracked
+  as a separate reporting entity by the World Bank before independence, and
+  no Kosovo military body existed before the Kosovo Security Force (founded
+  Jan 2009). Where that's encoded as `0.0` military spending, it's a
+  documented historical fact, not an estimate filling a gap.
+- **`troop_presence_index`** (foreign NATO/KFOR military presence in Kosovo)
+  is stored as context but deliberately excluded from the Power Index -- it
+  measures someone else's military footprint, not Kosovo's own capability.
+- **No reliable, symmetric source for military capability beyond spending
+  exists for this pair of countries.** I looked: IISS Military Balance is
+  subscription-only, Global Firepower Index has documented, non-transparent
+  methodology (multiple independent sources call it unreliable), and SIPRI
+  arms-transfer data is real but too sparse for Kosovo to be useful. Full
+  research trail, including cross-checks against the CIA World Factbook,
+  in [SEED_SOURCE.md](SEED_SOURCE.md).
+- **The weight percentages are my own design, not a citation.** Power Index
+  (40% Economic / 40% Military / 20% Social) and Window Score (50% power
+  symmetry / 30% mutual decline / 20% social pressure) reflect my own
+  theoretical judgment about what matters most in this context -- they
+  aren't drawn from an established methodology, and I'm not aware of a
+  citable source for these specific splits. The underlying *data* is sourced
+  and verifiable (see above); the *weighting* is my own design choice. Full
+  discussion, including why this isn't the same as the CINC national-power
+  index it takes inspiration from: [SEED_SOURCE.md §9](SEED_SOURCE.md).
+
 ## Tech stack
 
 **Backend:** FastAPI, SQLAlchemy, Alembic, PostgreSQL, Anthropic Claude API, pytest
@@ -129,7 +165,7 @@ npm run dev                                      # :5173
 
 ```bash
 cd backend
-pytest -q                # 87 tests -- unit (mocked) + integration (test DB)
+pytest -q                # 90 tests -- unit (mocked) + integration (test DB)
 ```
 
 ## Structure
