@@ -118,7 +118,8 @@ def test_list_indicators_by_country_filters_correctly(fake_indicator_repo, fake_
 def test_create_indicator_persists_new_entry(fake_indicator_repo, fake_country_repo):
     seed_countries(fake_country_repo, Country(id=1, name="Serbia"))
     data = IndicatorCreate(
-        country_id=1, category="ECONOMIC", indicator_type="GDP_growth", year=2013, value=2.6
+        country_id=1, category="ECONOMIC", indicator_type="GDP_growth", year=2013, value=2.6,
+        source="World Bank API (NY.GDP.MKTP.KD.ZG)",
     )
 
     created = indicator_service.create_indicator(db=None, data=data)
@@ -127,10 +128,27 @@ def test_create_indicator_persists_new_entry(fake_indicator_repo, fake_country_r
     assert created.country_id == 1
 
 
+def test_create_indicator_defaults_to_unverified(fake_indicator_repo, fake_country_repo):
+    # Business rule: κάθε νέο indicator μπαίνει is_verified=False εξ ορισμού
+    # (soft source check αντί για hard whitelist -- βλ. σχόλιο στο
+    # IndicatorCreate), ανεξάρτητα από το τι δηλώνει το `source`. Μόνο
+    # ρητό PUT από ADMIN το γυρίζει σε True.
+    seed_countries(fake_country_repo, Country(id=1, name="Serbia"))
+    data = IndicatorCreate(
+        country_id=1, category="ECONOMIC", indicator_type="GDP_growth", year=2013, value=2.6,
+        source="World Bank API (NY.GDP.MKTP.KD.ZG)",
+    )
+
+    created = indicator_service.create_indicator(db=None, data=data)
+
+    assert created.is_verified is False
+
+
 def test_create_indicator_rejects_missing_country(fake_indicator_repo, fake_country_repo):
     # Δεν κάναμε seed καμία χώρα -- το country_id=1 δεν υπάρχει
     data = IndicatorCreate(
-        country_id=1, category="ECONOMIC", indicator_type="GDP_growth", year=2013, value=2.6
+        country_id=1, category="ECONOMIC", indicator_type="GDP_growth", year=2013, value=2.6,
+        source="World Bank API (NY.GDP.MKTP.KD.ZG)",
     )
 
     with pytest.raises(CountryForIndicatorNotFoundError):

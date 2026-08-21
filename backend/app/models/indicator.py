@@ -40,11 +40,20 @@ class Indicator(Base):
     # π.χ. "%", "index_score" -- προαιρετικό πεδίο (nullable=True)
     unit = Column(String(20), nullable=True)
 
-    # π.χ. "IMF, 2024" -- η πηγή του δεδομένου, για διαφάνεια/ακαδημαϊκή αξιοπιστία
-    source = Column(String(200), nullable=True)
+    # π.χ. "IMF, 2024" -- η πηγή του δεδομένου, για διαφάνεια/ακαδημαϊκή αξιοπιστία.
+    # nullable=False: κάθε indicator ΠΡΕΠΕΙ να δηλώνει πηγή -- επιβάλλεται ήδη
+    # στο IndicatorBase schema, εδώ το κλειδώνουμε και σε επίπεδο ΒΔ ώστε να
+    # μην μπορεί να παρακαμφθεί από κώδικα που γράφει απευθείας στη ΒΔ χωρίς
+    # να περάσει από το schema.
+    source = Column(String(200), nullable=False)
 
-    # Αν το δεδομένο έχει επιβεβαιωθεί χειροκίνητα (seed data της διπλωματικής = True)
-    is_verified = Column(Boolean, nullable=False, default=True)
+    # server_default=False (όχι True): "soft" έλεγχος πηγής -- δεν κρατάμε hard
+    # whitelist αναγνωρισμένων οργανισμών (θα εμπόδιζε μελλοντικές μελέτες
+    # περίπτωσης με νόμιμες αλλά άγνωστες πηγές, βλ. README "Beyond this case
+    # study"), απλά ΔΕΝ εμπιστευόμαστε αυτόματα καμία νέα εγγραφή -- μόνο ρητό
+    # PUT από ADMIN τη γυρίζει σε True (βλ. IndicatorCreate.is_verified). Το
+    # seed.py δεν επηρεάζεται, περνάει is_verified=True ρητά ανά εγγραφή.
+    is_verified = Column(Boolean, nullable=False, default=False, server_default="false")
 
     # nullable=True: όχι κάθε εγγραφή έχει νόημα να ταξινομηθεί ως EXACT/CHART_READ/
     # RANGE (π.χ. researcher estimates όπως το troop_presence_index δεν είναι

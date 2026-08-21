@@ -11,13 +11,22 @@ from app.repositories import indicator as indicator_repository
 from app.repositories import negotiation_event as event_repository
 
 
-# ECONOMIC = GDP_growth + GDP_absolute_usd + unemployment_rate, ισοβαρή
-# μέσο όρο (βλ. get_category_score). Το GDP_growth πιάνει σοκ/ρυθμό
-# μεταβολής (π.χ. την κατάρρευση του 1999), το GDP_absolute_usd το μέγεθος
-# της οικονομίας -- χρειάζονται και τα δύο. Πλήρες σκεπτικό/πηγές:
+# ECONOMIC = GDP_growth + GDP_absolute_usd + unemployment_rate +
+# FDI_net_inflows_pct_gdp, ισοβαρή μέσο όρο (βλ. get_category_score). Το
+# GDP_growth πιάνει σοκ/ρυθμό μεταβολής (π.χ. την κατάρρευση του 1999), το
+# GDP_absolute_usd το μέγεθος της οικονομίας, το FDI_net_inflows_pct_gdp
+# την οικονομική ελκυστικότητα/ρεύμα ξένου κεφαλαίου -- διαφορετικές
+# διαστάσεις, χρειάζονται όλες. ΣΗΜΕΙΩΣΗ ερμηνείας: το FDI_net_inflows_pct_gdp
+# εδώ μετράει θετικό οικονομικό σήμα (περισσότερη εισροή κεφαλαίου = υψηλότερο
+# score), ΟΧΙ "ανεξαρτησία από εξωτερική επιρροή" -- η ερμηνεία της
+# διπλωματικής (FDI ως δείκτης οικονομικής εξάρτησης/ευπάθειας BATNA)
+# παραμένει ξεχωριστό, ποιοτικό εύρημα στο role_description της ΕΕ, όχι κάτι
+# που το Power Index αντικαθιστά ή αναιρεί. Πλήρες σκεπτικό/πηγές:
 # SEED_SOURCE.md.
-# MILITARY χρησιμοποιεί military_expenditure_pct_gdp (World Bank/SIPRI) και
-# για τις δύο χώρες, ίδιο indicator_type/πηγή -- το troop_presence_index
+# MILITARY χρησιμοποιεί military_expenditure_pct_gdp (ένταση προσπάθειας
+# σχετικά με το μέγεθος της οικονομίας) + military_expenditure_usd (απόλυτη
+# κλίμακα ικανότητας, λογαριθμική κλίμακα -- ίδιο σκεπτικό με GDP_absolute_usd)
+# και για τις δύο χώρες, ίδιο indicator_type/πηγή -- το troop_presence_index
 # (ξένη στρατιωτική παρουσία) παραμένει context-only, εννοιολογικά
 # διαφορετικό μέγεθος.
 NORMALIZATION_RANGES = {
@@ -32,6 +41,17 @@ NORMALIZATION_RANGES = {
     "unemployment_rate": (0.0, 60.0),
     "trade_share_eu": (0.0, 100.0),
     "military_expenditure_pct_gdp": (0.0, 8.0),
+    # World Bank BX.KLT.DINV.WD.GD.ZS -- παρατηρημένο εύρος 2.8%-10.45% και
+    # στις δύο χώρες (2007-2023), 20% δίνει άνετο περιθώριο (ίδιο σκεπτικό με
+    # unemployment_rate 0-60 έναντι παρατηρημένου 8-48).
+    "FDI_net_inflows_pct_gdp": (0.0, 20.0),
+    # $500K-$5B, λογαριθμική κλίμακα -- κάτω όριο κάτω από το μικρότερο
+    # πραγματικό Kosovo military spending ($927K, 2008), άνω όριο πάνω από
+    # το μεγαλύτερο Serbia ($1.8δισ, 2023). Ίδιο πρόβλημα/λύση με
+    # GDP_absolute_usd: ο λόγος Serbia/Kosovo εδώ (~690× το 2008) είναι ΑΚΟΜΑ
+    # μεγαλύτερος από το GDP, άρα γραμμική κλίμακα θα συνέθλιβε το Kosovo
+    # ακόμα πιο δραστικά.
+    "military_expenditure_usd": (500_000.0, 5_000_000_000.0),
 }
 
 # indicator_types όπου χαμηλότερη raw τιμή σημαίνει ισχυρότερη θέση (π.χ.
@@ -42,7 +62,7 @@ LOWER_IS_BETTER = {"unemployment_rate"}
 # κατάλληλο για μεγέθη με διαφορά τάξεων μεγέθους (στάνταρ οικονομετρική
 # πρακτική). Τα δύο άκρα στο NORMALIZATION_RANGES ερμηνεύονται ΠΡΙΝ το
 # log10 (raw USD), όχι ήδη-λογαριθμισμένα.
-LOG_SCALE_INDICATORS = {"GDP_absolute_usd"}
+LOG_SCALE_INDICATORS = {"GDP_absolute_usd", "military_expenditure_usd"}
 
 
 def normalize(value: float, indicator_type: str) -> float:

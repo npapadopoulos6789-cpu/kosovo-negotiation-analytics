@@ -10,6 +10,7 @@ def test_create_and_get_indicator(client, admin_client):
         "indicator_type": "GDP_growth",
         "year": 2013,
         "value": 2.6,
+        "source": "World Bank API (NY.GDP.MKTP.KD.ZG)",
     })
     assert create_response.status_code == 201
     indicator_id = create_response.json()["id"]
@@ -26,6 +27,7 @@ def test_create_indicator_with_missing_country_returns_404(admin_client):
         "indicator_type": "GDP_growth",
         "year": 2013,
         "value": 2.6,
+        "source": "World Bank API (NY.GDP.MKTP.KD.ZG)",
     })
 
     assert response.status_code == 404
@@ -38,10 +40,12 @@ def test_list_indicators_by_country(client, admin_client):
     admin_client.post("/indicators", json={
         "country_id": serbia["id"], "category": "ECONOMIC",
         "indicator_type": "GDP_growth", "year": 2013, "value": 2.6,
+        "source": "World Bank API (NY.GDP.MKTP.KD.ZG)",
     })
     admin_client.post("/indicators", json={
         "country_id": kosovo["id"], "category": "ECONOMIC",
         "indicator_type": "GDP_growth", "year": 2013, "value": 1.1,
+        "source": "World Bank API (NY.GDP.MKTP.KD.ZG)",
     })
 
     response = client.get(f"/indicators/by-country/{serbia['id']}")

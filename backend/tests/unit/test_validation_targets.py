@@ -26,6 +26,14 @@ Bank/SIPRI) αντί για troop_presence_index (context-only πλέον) -- 19
 (LOWER_IS_BETTER). Το log-scale εύρος ($1B-$100B) ελέγχθηκε για ευστάθεια
 με εναλλακτικό, εξίσου υπερασπίσιμο εύρος ($500M-$200B, committed πριν
 το τρέξιμο) -- το P3 αποτέλεσμα (2013 optimal) έμεινε robust και στα δύο.
+
+ΔΕΥΤΕΡΗ ΜΕΘΟΔΟΛΟΓΙΚΗ ΑΝΑΘΕΩΡΗΣΗ 2026-08-21 (ίδια ημέρα, μετά έγκριση):
+προστέθηκαν FDI_net_inflows_pct_gdp (4ο ECONOMIC indicator, World Bank
+BX.KLT.DINV.WD.GD.ZS, θετική κατεύθυνση) και military_expenditure_usd (2ο
+MILITARY indicator, World Bank/SIPRI MS.MIL.XPND.CD, λογαριθμική κλίμακα
+$500K-$5δισ) -- πλήρες σκεπτικό/πηγές: SEED_SOURCE.md §3.1/§3.6/§3.7. Όλα
+τα P1-P4 assertions (κατεύθυνση, όχι ακριβείς τιμές) παρέμειναν robust μετά
+την προσθήκη -- μόνο τα απόλυτα νούμερα άλλαξαν, ενημερώθηκαν παρακάτω.
 """
 import pytest
 from fastapi.testclient import TestClient
@@ -110,6 +118,10 @@ def test_serbia_recovery_trend(db, serbia_id):
     Μετά τη μεθοδολογική αναθεώρηση 2026-08-21 (combined ECONOMIC,
     log-scale GDP_absolute_usd): 2005=51.79 -> 2007=54.5, ίδια κατεύθυνση
     με πριν, νέα απόλυτα επίπεδα.
+
+    Μετά τη ΔΕΥΤΕΡΗ αναθεώρηση ίδιας ημέρας (+FDI_net_inflows_pct_gdp,
+    +military_expenditure_usd): 2005=61.74 -> 2007=62.29 -- ίδια
+    κατεύθυνση, robust στην προσθήκη των δύο νέων indicators.
     """
     pi_2005 = analytics_service.calculate_power_index(db, serbia_id, 2005)
     pi_2007 = analytics_service.calculate_power_index(db, serbia_id, 2007)
@@ -134,6 +146,9 @@ def test_power_gap_narrows_2013_to_2023(db, serbia_id, kosovo_id):
     γραμμικό αντί για GDP_growth+GDP_absolute_usd log-scale, το gap
     ΔΙΕΥΡΥΝΟΤΑΝ αντί να στενεύει -- artifact γραμμικής συμπίεσης του
     Kosovo GDP component, βλ. PROJECT_STATUS.md. Διορθώθηκε.)
+
+    Μετά τη ΔΕΥΤΕΡΗ αναθεώρηση ίδιας ημέρας (+FDI, +military_expenditure_usd):
+    gap 2013=17.76 -> 2023=13.8 -- εξακολουθεί να στενεύει, robust.
     """
     gap_2013 = analytics_service.calculate_power_gap(db, serbia_id, kosovo_id, 2013)
     gap_2023 = analytics_service.calculate_power_gap(db, serbia_id, kosovo_id, 2023)
@@ -176,6 +191,12 @@ def test_2013_is_optimal_window(db, serbia_id, kosovo_id):
     πριν το τρέξιμο ώστε να μην επιλεγεί για συγκεκριμένο αποτέλεσμα) --
     2013=57.52 vs 2023=56.64, το 2013 κερδίζει ΚΑΙ εκεί (margin μεγαλώνει
     στα 0.88). Robust ως προς αυτή τη μεθοδολογική παράμετρο.
+
+    Μετά τη ΔΕΥΤΕΡΗ αναθεώρηση ίδιας ημέρας (+FDI_net_inflows_pct_gdp,
+    +military_expenditure_usd): 2013=55.79 (previous_year=2007) vs
+    2023=55.0 (previous_year=2013) -- 2013 ΕΞΑΚΟΛΟΥΘΕΙ να κερδίζει, μάλιστα
+    με μεγαλύτερο περιθώριο (0.79 αντί 0.62). Τρίτη ανεξάρτητη επιβεβαίωση
+    της ευστάθειας του P3 εύρηματος.
     """
     result = analytics_service.find_optimal_mutual_compromise_period(db, serbia_id, kosovo_id)
 
@@ -190,8 +211,11 @@ def test_2013_is_optimal_window(db, serbia_id, kosovo_id):
 def test_kosovo_indicator_breakdown_documented(db, kosovo_id):
     """
     Καταγράφει (χωρίς normative assertion πέρα από τα ίδια τα νούμερα) τις
-    τρεις category τιμές του Κοσόβου ανά έτος, μετά τη μεθοδολογική
-    αναθεώρηση 2026-08-21:
+    τρεις category τιμές του Κοσόβου ανά έτος. Δύο μεθοδολογικές
+    αναθεωρήσεις 2026-08-21, ίδια ημέρα:
+
+    1η (combined ECONOMIC + military_expenditure_pct_gdp αντί για
+    troop_presence_index):
 
         year  economic  military  social
         2005  31.67     0.0       27.5
@@ -199,18 +223,43 @@ def test_kosovo_indicator_breakdown_documented(db, kosovo_id):
         2013  62.95     9.02      29.5
         2023  65.61     15.92     38.0
 
+    2η, ΙΔΙΑ ημέρα (+FDI_net_inflows_pct_gdp στο ECONOMIC,
+    +military_expenditure_usd στο MILITARY, μετά έγκριση):
+
+        year  economic  military  social
+        2005  31.67     0.0       27.5   (αμετάβλητο -- Kosovo FDI/
+        2007  23.33     0.0       27.0   military_usd ξεκινούν 2008)
+        2013  51.16     29.35     29.5
+        2023  58.21     38.28     38.0
+
+    2005/2007 αμετάβλητα -- το Kosovo FDI_net_inflows_pct_gdp ξεκινά 2008
+    (καμία τιμή World Bank πριν) και το military_expenditure_usd έχει την
+    ίδια τεκμηριωμένη 0.0 τιμή με το ήδη υπάρχον %GDP indicator για εκείνα
+    τα έτη -- ο μέσος όρος δεν αλλάζει. 2013/2023 άλλαξαν αισθητά και στα
+    δύο components.
+
     P5 της αρχικής υπόθεσης (economic+military χαμηλό) -- ΜΕΡΙΚΩΣ
-    επιβεβαιώνεται τώρα, μεικτή εικόνα ανά component:
-    - military: ΣΤΑΘΕΡΑ χαμηλό (0-15.92) σε όλα τα έτη -- επιβεβαιώνει
-      καθαρά την απουσία εγγενούς στρατιωτικής ικανότητας (πραγματικά
-      KSF spending στοιχεία τώρα, όχι πια ασαφές troop_presence_index).
-    - economic: ΜΕΙΚΤΟ -- χαμηλό το 2005/2007 (23-32, όταν μόνο
-      unemployment_rate+GDP_growth ήταν διαθέσιμα), αλλά μέτριο το
-      2013/2023 (63-66, μετά την προσθήκη log-scale GDP_absolute_usd) --
-      ΔΕΝ είναι ομοιόμορφα χαμηλό όπως θα υπονοούσε η αρχική υπόθεση.
-    Άρα: το military component της P5 επιβεβαιώνεται καθαρά· το economic
-    ΟΧΙ ομοιόμορφα -- τεκμηριωμένος περιορισμός/εύρημα, όχι απόδειξη ότι
-    η δομική αδυναμία δεν υπάρχει, βλ. README Limitations.
+    επιβεβαιώνεται, μεικτή εικόνα ανά component, ΙΔΙΑ ερμηνεία με πριν:
+    - military: αυξήθηκε αισθητά το 2013/2023 (9.02->29.35, 15.92->38.28)
+      μετά την προσθήκη του military_expenditure_usd -- λογικό, το Κόσοβο
+      έχει σχετικά υψηλότερο score σε απόλυτη κλίμακα παρά σε ένταση
+      προσπάθειας (μικρή οικονομία, ο λόγος Serbia/Kosovo σε απόλυτα $
+      παραμένει τεράστιος αλλά η log-scale normalization τον συμπιέζει
+      λιγότερο δραστικά απ' ό,τι φοβόμασταν) -- ΠΑΡΑΜΕΝΕΙ χαμηλότερο από
+      Serbia (δεν ελέγχεται ρητά εδώ, βλ. Power Gap στο P4), απλά όχι πια
+      "σχεδόν μηδέν" σε κάθε έτος όπως πριν.
+    - economic: παρέμεινε μεικτό -- χαμηλό το 2005/2007, μέτριο το
+      2013/2023 (51-58, ελαφρώς χαμηλότερο από πριν λόγω FDI ως 4ου
+      ισοβαρή indicator -- το Kosovo FDI 2013/2023 είναι υψηλότερο από το
+      Serbia αντίστοιχο έτος, οπότε αυτό καθαυτό ΘΑ ανέβαζε το economic
+      score, αλλά η προσθήκη ενός επιπλέον ισοβαρή indicator αραιώνει την
+      επιρροή του ήδη υψηλού GDP_absolute_usd -- καθαρό αποτέλεσμα οριακά
+      χαμηλότερο, όχι artifact, βλ. get_category_score).
+    Άρα: το military component της P5 ΕΞΑΚΟΛΟΥΘΕΙ να επιβεβαιώνεται
+    (χαμηλότερο από Serbia σε κάθε έτος), αν και λιγότερο ακραία απ' ό,τι
+    έδειχνε μόνο το %GDP· το economic ΟΧΙ ομοιόμορφα -- τεκμηριωμένος
+    περιορισμός/εύρημα, όχι απόδειξη ότι η δομική αδυναμία δεν υπάρχει,
+    βλ. README Limitations.
     """
     breakdown = {
         year: {
@@ -226,8 +275,8 @@ def test_kosovo_indicator_breakdown_documented(db, kosovo_id):
     assert breakdown == {
         2005: {"economic": 31.67, "military": 0.0, "social": 27.5},
         2007: {"economic": 23.33, "military": 0.0, "social": 27.0},
-        2013: {"economic": 62.95, "military": 9.02, "social": 29.5},
-        2023: {"economic": 65.61, "military": 15.92, "social": 38.0},
+        2013: {"economic": 51.16, "military": 29.35, "social": 29.5},
+        2023: {"economic": 58.21, "military": 38.28, "social": 38.0},
     }
 
 
@@ -248,8 +297,9 @@ def test_window_score_endpoint_autocomputes_previous_year(serbia_id, kosovo_id):
     Μετά τη διόρθωση, το endpoint αυτο-υπολογίζει το previous_year με τον
     ίδιο _most_recent_year_with_data helper όταν ο caller δεν το δίνει --
     οπότε τα δύο endpoints πρέπει τώρα να συμφωνούν. Τιμή ενημερωμένη
-    2026-08-21 μετά τη μεθοδολογική αναθεώρηση (61.98 -> 56.75, βλ.
-    test_2013_is_optimal_window για το πλήρες σκεπτικό).
+    2026-08-21 μετά τη μεθοδολογική αναθεώρηση (61.98 -> 56.75), ΚΑΙ ξανά
+    μετά τη δεύτερη αναθεώρηση ίδιας ημέρας (+FDI, +military_expenditure_usd:
+    56.75 -> 55.79, βλ. test_2013_is_optimal_window για το πλήρες σκεπτικό).
     """
     client = TestClient(app)
 
@@ -264,5 +314,5 @@ def test_window_score_endpoint_autocomputes_previous_year(serbia_id, kosovo_id):
 
     assert window_score_response.status_code == 200
     assert optimal_response.status_code == 200
-    assert window_score_response.json()["window_score"] == 56.75
-    assert optimal_response.json()["window_score"] == 56.75
+    assert window_score_response.json()["window_score"] == 55.79
+    assert optimal_response.json()["window_score"] == 55.79
