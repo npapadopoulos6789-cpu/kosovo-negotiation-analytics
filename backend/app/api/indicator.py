@@ -17,9 +17,8 @@ def list_indicators(db: Session = Depends(get_db)):
 
 @router.get("/{indicator_id}", response_model=IndicatorRead)
 def get_indicator(indicator_id: int, db: Session = Depends(get_db)):
-    # Σημείωσε: ΔΕΝ κάνουμε εδώ try/except -- αν πεταχτεί
-    # IndicatorNotFoundError, το πιάνει αυτόματα ο exception handler
-    # που θα προσθέσουμε στο main.py
+    # Κανένα try/except εδώ -- το IndicatorNotFoundError το πιάνει ο
+    # global exception handler στο main.py.
     return indicator_service.get_indicator(db, indicator_id)
 
 

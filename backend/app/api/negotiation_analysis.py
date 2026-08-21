@@ -25,8 +25,7 @@ def list_analyses_by_event(event_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=NegotiationAnalysisRead, status_code=201)
 def create_analysis(payload: NegotiationAnalysisCreate, db: Session = Depends(get_db)):
-    # ΣΗΜΕΙΩΣΗ: δεν βάζουμε require_admin εδώ -- θυμήσου το domain model
-    # μας, ΟΠΟΙΟΣΔΗΠΟΤΕ συνδεδεμένος χρήστης (ADMIN ή VIEWER) επιτρέπεται
-    # να ζητήσει LLM analysis, μόνο η διαχείριση δεδομένων (Country/
-    # Indicator/Event) είναι ADMIN-only
+    # Χωρίς require_admin -- κάθε συνδεδεμένος χρήστης (ADMIN ή VIEWER)
+    # μπορεί να ζητήσει LLM analysis· μόνο η διαχείριση δεδομένων
+    # (Country/Indicator/Event) είναι ADMIN-only.
     return analysis_service.create_analysis(db, payload)
