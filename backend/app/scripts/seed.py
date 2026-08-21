@@ -2,61 +2,34 @@
 Seed script -- γεμίζει τη ΒΔ με τα δεδομένα της διπλωματικής.
 Τρέχεται με: python -m app.scripts.seed
 
-ΣΗΜΕΙΩΣΗ ΓΛΩΣΣΑΣ (2026-08-20): όλες οι τιμές πεδίων (description, batna,
-red_lines, zopa/ripeness reasoning, role_description, source) είναι στα
-ΑΓΓΛΙΚΑ -- απόφαση με τον χρήστη, το UI του frontend είναι στα αγγλικά.
-Μεταφράστηκαν από το αρχικό ελληνικό κείμενο της διπλωματικής χωρίς αλλαγή
-νοήματος/αριθμών/ημερομηνιών. Τα σχόλια αυτού του αρχείου παραμένουν
-ελληνικά (dev-facing, όπως το CLAUDE.md).
+Όλες οι τιμές πεδίων (description, batna, red_lines, zopa/ripeness
+reasoning, role_description, source) είναι στα αγγλικά, όπως το UI του
+frontend -- μεταφρασμένες από το αρχικό ελληνικό κείμενο της διπλωματικής
+χωρίς αλλαγή νοήματος/αριθμών/ημερομηνιών. Τα σχόλια αυτού του αρχείου
+παραμένουν ελληνικά (dev-facing, όπως το CLAUDE.md).
 
 ΠΗΓΕΣ:
-- Economic (GDP growth, unemployment), Serbia: World Bank API, πραγματικά,
-  confidence=EXACT (ακριβής δημοσιευμένη τιμή -- βλ. απόφαση 2026-08-02)
-- Military (% GDP δαπανών, Σερβία): World Bank API (πηγή SIPRI), πραγματικά
-- Military (Κόσοβο): τεκμηριωμένη εκτίμηση έντασης ξένης στρατιωτικής
-  παρουσίας (KFOR/NATO), βάσει αφηγηματικού κειμένου διπλωματικής
-- Social (Freedom House score, Σερβία+Κόσοβο): τιμές SEED_DATA_SPEC.md §2.4
-  (Γράφημα 1.11 διπλωματικής), confidence=CHART_READ -- υιοθετήθηκαν
-  2026-08-02 αντί των αρχικών ενδεικτικών τιμών
+- Economic (GDP growth, unemployment), Serbia: World Bank API, confidence=EXACT
+- Military (% GDP δαπανών), Serbia+Kosovo: World Bank API (πηγή SIPRI)
+- Social (Freedom House score), Serbia+Kosovo: SEED_DATA_SPEC.md §2.4
+  (Γράφημα 1.11 διπλωματικής), confidence=CHART_READ
 - Kosovo unemployment (2005-2008): Γράφημα 1.5 διπλωματικής (ILO/WB, δεν
   καλύπτεται από το World Bank API για αυτή την περίοδο)
-- Kosovo trade_share_eu (2018): Γράφημα 1.7 διπλωματικής (εισαγωγές, 44.7%
-  -- υιοθετήθηκε 2026-08-02 αντί του δικού μας μέσου όρου εισαγωγών/εξαγωγών)
+- Kosovo trade_share_eu (2018): Γράφημα 1.7 διπλωματικής (εισαγωγές)
 - Serbia trade_share_eu (2023): Γράφημα 1.8 διπλωματικής
 
-10 negotiation events (E1-E10) όπως περιγράφονται στο SEED_DATA_SPEC.md §3
-(υιοθετήθηκαν 2026-08-02, αντικατέστησαν τα αρχικά 7 -- βλ. PROJECT_STATUS.md
-για το πλήρες change-log αυτής της αναθεώρησης).
+10 negotiation events (E1-E10) όπως περιγράφονται στο SEED_DATA_SPEC.md §3.
+Per-event breakdown δρώντων/ρόλων: SEED_SOURCE.md.
 
-Χώρες/δρώντες India, OSCE, ICJ + τα role_description όλων των μη-πρωταγωνιστών
-(USA/EU/Russia/China/NATO/UN/Albania) προστέθηκαν στο script 2026-08-20 --
-υπήρχαν ήδη στην τρέχουσα ΒΔ (προστέθηκαν εκτός seed.py σε προηγούμενο
-session, ΔΕΝ ήταν καταγεγραμμένα εδώ) βλ. SEED_SOURCE.md για το αναλυτικό
-per-event breakdown δρώντων/ρόλων που τεκμηριώνει τις τιμές αυτές.
+Το Power Index ECONOMIC category συνδυάζει GDP_growth (ρυθμός μεταβολής,
+πιάνει σοκ όπως το 1999) με GDP_absolute_usd σε λογαριθμική κλίμακα
+(μέγεθος οικονομίας) και unemployment_rate. Το MILITARY category
+χρησιμοποιεί military_expenditure_pct_gdp και για τις δύο χώρες (ίδιο
+indicator_type/πηγή)· το troop_presence_index (ξένη στρατιωτική παρουσία
+NATO/KFOR) παραμένει context-only. Πλήρες σκεπτικό/πηγές: SEED_SOURCE.md.
 
-ΜΕΘΟΔΟΛΟΓΙΚΗ ΑΝΑΘΕΩΡΗΣΗ (2026-08-21, δύο γύροι) — τι μετράει το Power
-Index στα ECONOMIC/MILITARY categories, βλ. NORMALIZATION_RANGES στο
-analytics.py + πλήρες σκεπτικό/πηγές στο SEED_SOURCE.md:
-- ECONOMIC = GDP_growth + GDP_absolute_usd + unemployment_rate μαζί
-  (ισοβαρή μέσο όρο), ΟΧΙ αντικατάσταση. 1ος γύρος δοκίμασε GDP_growth
-  -> GDP_absolute_usd (μέγεθος οικονομίας, national-power convention)
-  αλλά αυτό έχασε την ικανότητα ανίχνευσης του οικονομικού σοκ του 1999
-  (P1 finding) -- το GDP_growth ξαναμπήκε, συνδυαστικά.
-- GDP_absolute_usd σε ΛΟΓΑΡΙΘΜΙΚΗ κλίμακα (όχι γραμμική) -- γραμμική
-  κλίμακα σε εύρος $0-100B έκανε το Kosovo GDP component σχεδόν σταθερό
-  χαμηλό (5-10.5%), δομικό "ταβάνι" ανεξάρτητο από πραγματική οικονομική
-  δυναμική. Log-scale δίνει πραγματικό εύρος διακύμανσης.
-- MILITARY: Kosovo troop_presence_index (researcher estimate ξένης
-  στρατιωτικής παρουσίας) -> military_expenditure_pct_gdp (World Bank/
-  SIPRI, ΙΔΙΟ indicator code με Serbia -- πριν συγκρίναμε δύο εννοιολογικά
-  ασύμβατα μεγέθη κάτω από την ίδια κατηγορία). Εδώ ΕΙΝΑΙ αντικατάσταση
-  (όχι συνδυασμός) -- troop_presence_index μένει στη ΒΔ ως context-only.
-- Bug fix: `unemployment_rate` είχε ανάποδη κατεύθυνση στο normalize()
-  (υψηλότερη ανεργία -> υψηλότερο economic score) -- διορθώθηκε με
-  LOWER_IS_BETTER set στο analytics.py.
-
-FUTURE WORK (αποφασίστηκε ρητά να ΜΗΝ μπουν τώρα, βλ. SEED_DATA_SPEC.md
-ενότητες 2.1-2.4 για τα πλήρη στοιχεία όταν χρειαστεί):
+FUTURE WORK (δεν υλοποιείται τώρα, βλ. SEED_DATA_SPEC.md ενότητες 2.1-2.4
+για τα πλήρη στοιχεία όταν χρειαστεί):
 - Indicators: eu_fdi_share, eu_preaccession_funds, russian_gas_dependency,
   chinese_loans_cumulative, trade_volume_* ανά εμπορικό εταίρο (Serbia 2023),
   Kosovo GDP_per_capita/GDP_per_capita_USD, δημογραφικά (albanian/serb_
@@ -178,11 +151,9 @@ def seed_indicators(db, country_ids: dict):
     # (country_id, category, indicator_type, year, value, unit, source, confidence)
     indicators = [
         # ============ SERBIA — ECONOMIC (World Bank API, πραγματικά, EXACT) ============
-        # GDP_growth: ΠΑΛΙ scored από 2026-08-21 (βλ. NORMALIZATION_RANGES)
-        # -- μαζί με GDP_absolute_usd παρακάτω, ΟΧΙ αντί αυτού. Το
-        # GDP_absolute_usd μόνο του δεν έπιανε το σοκ του 1999 (P1 finding,
-        # βλ. PROJECT_STATUS.md) -- το ρυθμό μεταβολής τον πιάνει μόνο το
-        # GDP_growth.
+        # GDP_growth: μαζί με το GDP_absolute_usd παρακάτω, όχι αντί αυτού
+        # -- μόνο ο ρυθμός μεταβολής πιάνει σοκ όπως το 1999, το απόλυτο
+        # μέγεθος όχι.
         (serbia_id, "ECONOMIC", "GDP_growth", 1998, 5.34, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)", "EXACT"),
         (serbia_id, "ECONOMIC", "GDP_growth", 1999, -10.33, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)", "EXACT"),
         (serbia_id, "ECONOMIC", "GDP_growth", 2000, 6.06, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)", "EXACT"),
@@ -207,11 +178,9 @@ def seed_indicators(db, country_ids: dict):
 
         (serbia_id, "ECONOMIC", "trade_share_eu", 2023, 60.0, "%", "European Commission/IMF/Statistical Office of Serbia, Thesis Chart 1.8", None),
 
-        # ============ SERBIA — GDP_absolute_usd (ΤΩΡΑ μέρος του Power Index) ============
-        # Μεθοδολογική αλλαγή 2026-08-21: το ECONOMIC category χρησιμοποιεί
-        # πλέον απόλυτο μέγεθος οικονομίας (national-power convention),
-        # ΟΧΙ per capita -- βλ. SEED_SOURCE.md για το πλήρες σκεπτικό της
-        # απόφασης (απόλυτο GDP vs GDP per capita vs GDP_growth).
+        # ============ SERBIA — GDP_absolute_usd ============
+        # Απόλυτο μέγεθος οικονομίας (national-power convention), όχι per
+        # capita -- πλήρες σκεπτικό: SEED_SOURCE.md.
         (serbia_id, "ECONOMIC", "GDP_absolute_usd", 1999, 20878694850.58, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
         (serbia_id, "ECONOMIC", "GDP_absolute_usd", 2005, 28334256180.88, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
         (serbia_id, "ECONOMIC", "GDP_absolute_usd", 2007, 44888028946.09, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
@@ -219,7 +188,7 @@ def seed_indicators(db, country_ids: dict):
         (serbia_id, "ECONOMIC", "GDP_absolute_usd", 2013, 50455529604.07, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
         (serbia_id, "ECONOMIC", "GDP_absolute_usd", 2023, 81343999280.02, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
 
-        # ============ SERBIA — MILITARY (World Bank API, πηγή SIPRI, πραγματικά -- ΑΜΕΤΑΒΛΗΤΟ) ============
+        # ============ SERBIA — MILITARY (World Bank API, πηγή SIPRI) ============
         (serbia_id, "MILITARY", "military_expenditure_pct_gdp", 1999, 3.53, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)", None),
         (serbia_id, "MILITARY", "military_expenditure_pct_gdp", 2005, 2.22, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)", None),
         (serbia_id, "MILITARY", "military_expenditure_pct_gdp", 2007, 2.16, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)", None),
@@ -240,10 +209,11 @@ def seed_indicators(db, country_ids: dict):
         (serbia_id, "SOCIAL_UNREST", "freedom_house_score", 2023, 43.0, "index_score", "Freedom House Nations in Transit, Thesis Chart 1.11", "CHART_READ"),
 
         # ============ KOSOVO — ECONOMIC ============
-        # GDP_growth: ΠΑΛΙ scored, ίδιο σκεπτικό με Serbia παραπάνω.
+        # GDP_growth: ίδιο σκεπτικό με Serbia παραπάνω.
         (kosovo_id, "ECONOMIC", "GDP_growth", 2013, 5.34, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)", None),
         (kosovo_id, "ECONOMIC", "GDP_growth", 2023, 4.07, "%", "World Bank API (NY.GDP.MKTP.KD.ZG)", None),
-        # 1999: δεν υπάρχει στο World Bank API (πριν το 2009) -- σκόπιμα δεν εικάζουμε
+        # 1999: δεν υπάρχει στο World Bank API -- το Κόσοβο δεν reportάρεται
+        # ως ξεχωριστή entity πριν το 2008.
 
         (kosovo_id, "ECONOMIC", "unemployment_rate", 2005, 41.0, "%", "ILO/World Bank Open Data, Thesis Chart 1.5", None),
         (kosovo_id, "ECONOMIC", "unemployment_rate", 2007, 46.0, "%", "ILO/World Bank Open Data, Thesis Chart 1.5", None),
@@ -251,46 +221,40 @@ def seed_indicators(db, country_ids: dict):
 
         (kosovo_id, "ECONOMIC", "trade_share_eu", 2018, 44.7, "%", "Council of the European Union 2018, Thesis Chart 1.7 (imports)", None),
 
-        # ============ KOSOVO — GDP_absolute_usd (ΤΩΡΑ μέρος του Power Index) ============
-        # Μόνο 2008/2013/2023 -- το World Bank (XKX) ΔΕΝ έχει σειρά για το
-        # Κόσοβο πριν το 2008 (δεν υπήρχε ως ξεχωριστή reporting entity πριν
-        # την ανεξαρτησία· confirmed κενό στο API, όχι απλά μη-ελεγμένο).
-        # Σκόπιμα ΔΕΝ βάζουμε τιμές για 1999/2005/2007 -- καμία αξιόπιστη
-        # δημόσια πηγή.
+        # ============ KOSOVO — GDP_absolute_usd ============
+        # Μόνο 2008/2013/2023 -- το World Bank (XKX series) δεν έχει
+        # δεδομένα για το Κόσοβο πριν την ανεξαρτησία (2008). Καμία τιμή
+        # για 1999/2005/2007, δεν υπάρχει αξιόπιστη δημόσια πηγή.
         (kosovo_id, "ECONOMIC", "GDP_absolute_usd", 2008, 5202943075.49, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
         (kosovo_id, "ECONOMIC", "GDP_absolute_usd", 2013, 6735327512.05, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
         (kosovo_id, "ECONOMIC", "GDP_absolute_usd", 2023, 10466753839.99, "USD", "World Bank API (NY.GDP.MKTP.CD)", "EXACT"),
 
         # ============ KOSOVO — MILITARY ============
-        # military_expenditure_pct_gdp (ΤΩΡΑ μέρος του Power Index, 2026-08-21):
-        # World Bank/SIPRI, ΙΔΙΟ indicator code με Serbia (MS.MIL.XPND.GD.ZS) --
-        # verified με raw API query. 2008/2013/2023 -- ίδιος περιορισμός με
-        # το GDP_absolute_usd παραπάνω (XKX series στο World Bank ξεκινά
-        # 2008). Confidence "EXACT" εδώ (πρωτογενής, verified τιμή) --
-        # σημείωση: η αντίστοιχη Serbia εγγραφή παραπάνω έχει confidence=None
-        # παρόλο που είναι ίδιας ποιότητας δεδομένο· προϋπάρχουσα ασυνέπεια,
-        # δεν τη διορθώνουμε εδώ χωρίς ρητή απόφαση (βλ. PROJECT_STATUS.md).
+        # military_expenditure_pct_gdp: World Bank/SIPRI, ίδιος indicator
+        # code με Serbia (MS.MIL.XPND.GD.ZS). Μόνο 2008/2013/2023, ίδιος
+        # περιορισμός με το GDP_absolute_usd παραπάνω. Confidence=EXACT εδώ
+        # ενώ η αντίστοιχη Serbia εγγραφή έχει confidence=None παρόλο που
+        # είναι ίδιας ποιότητας δεδομένο -- προϋπάρχουσα ασυνέπεια, βλ.
+        # PROJECT_STATUS.md.
         (kosovo_id, "MILITARY", "military_expenditure_pct_gdp", 2008, 0.0163, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)", "EXACT"),
         (kosovo_id, "MILITARY", "military_expenditure_pct_gdp", 2013, 0.7217, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)", "EXACT"),
         (kosovo_id, "MILITARY", "military_expenditure_pct_gdp", 2023, 1.2735, "%GDP", "World Bank API / SIPRI (MS.MIL.XPND.GD.ZS)", "EXACT"),
 
-        # 1999/2005/2007: value=0.0, confidence="EXACT" -- ΟΧΙ στατιστική
-        # πηγή, ΟΧΙ εκτίμηση κενού. Το Kosovo Security Force ιδρύθηκε
-        # Ιανουάριος 2009· πριν από αυτό ΔΕΝ υπήρχε κανένα στρατιωτικό σώμα
-        # του Κοσόβου να χρηματοδοτηθεί (το προγενέστερο Kosovo Protection
-        # Corps ήταν ρητά μη-στρατιωτικός οργανισμός πολιτικής προστασίας
-        # υπό UNMIK, verified μέσω έρευνας 2026-08-21 -- βλ. SEED_SOURCE.md).
-        # 0.0 είναι εδώ τεκμηριωμένο ιστορικό γεγονός, όχι placeholder.
+        # 1999/2005/2007: value=0.0 είναι τεκμηριωμένο ιστορικό γεγονός, όχι
+        # placeholder ή εκτίμηση -- το Kosovo Security Force ιδρύθηκε
+        # Ιανουάριος 2009, πριν από αυτό δεν υπήρχε στρατιωτικό σώμα του
+        # Κοσόβου (το προγενέστερο Kosovo Protection Corps ήταν μη-
+        # στρατιωτικός οργανισμός πολιτικής προστασίας υπό UNMIK). Βλ.
+        # SEED_SOURCE.md.
         (kosovo_id, "MILITARY", "military_expenditure_pct_gdp", 1999, 0.0, "%GDP", "Historical fact: no Kosovo military body existed before KSF founding (Jan 2009) -- see SEED_SOURCE.md", "EXACT"),
         (kosovo_id, "MILITARY", "military_expenditure_pct_gdp", 2005, 0.0, "%GDP", "Historical fact: no Kosovo military body existed before KSF founding (Jan 2009) -- see SEED_SOURCE.md", "EXACT"),
         (kosovo_id, "MILITARY", "military_expenditure_pct_gdp", 2007, 0.0, "%GDP", "Historical fact: no Kosovo military body existed before KSF founding (Jan 2009) -- see SEED_SOURCE.md", "EXACT"),
 
-        # troop_presence_index: context-only από 2026-08-21 (ΔΕΝ είναι πια στο
+        # troop_presence_index: context-only (δεν είναι στο
         # NORMALIZATION_RANGES) -- researcher estimate ξένης (NATO/KFOR)
-        # στρατιωτικής παρουσίας, εννοιολογικά διαφορετικό από "εγγενή
-        # στρατιωτική ικανότητα" (που τώρα μετράει το military_expenditure_
-        # pct_gdp παραπάνω). Η τιμή μένει στη ΒΔ ως ιστορικό context, βλ.
-        # SEED_SOURCE.md.
+        # στρατιωτικής παρουσίας, εννοιολογικά διαφορετικό από την εγγενή
+        # στρατιωτική ικανότητα που μετράει το military_expenditure_pct_gdp
+        # παραπάνω. Βλ. SEED_SOURCE.md.
         (kosovo_id, "MILITARY", "troop_presence_index", 1999, 90.0, "index_score", "Researcher estimate based on the NATO/KFOR narrative in the thesis", None),
         (kosovo_id, "MILITARY", "troop_presence_index", 2005, 55.0, "index_score", "Researcher estimate based on the NATO/KFOR narrative in the thesis", None),
         (kosovo_id, "MILITARY", "troop_presence_index", 2007, 45.0, "index_score", "Researcher estimate based on the NATO/KFOR narrative in the thesis", None),
@@ -520,12 +484,12 @@ def seed_events(db, country_ids: dict):
 def run_seed():
     db = SessionLocal()
     try:
-        # Idempotency guard -- ΧΩΡΙΣ αυτό, ένα δεύτερο τρέξιμο πάνω σε ήδη
+        # Idempotency guard -- χωρίς αυτό, ένα δεύτερο τρέξιμο πάνω σε ήδη
         # γεμάτη ΒΔ θα έσκαγε σε duplicate-key errors (κανένα ON CONFLICT
-        # στο repository layer, ούτε χρειάζεται για χειροκίνητο workflow).
-        # Χρειάστηκε τώρα γιατί το api container του Docker Compose τρέχει
-        # αυτό το script σε ΚΑΘΕ startup (βλ. docker-entrypoint.sh) -- η
-        # χειροκίνητη ροή `python -m app.scripts.seed` παραμένει ίδια.
+        # στο repository layer). Απαραίτητο γιατί το api container του
+        # Docker Compose τρέχει αυτό το script σε κάθε startup (βλ.
+        # docker-entrypoint.sh)· η χειροκίνητη ροή
+        # `python -m app.scripts.seed` παραμένει ίδια.
         if country_service.list_countries(db):
             print("Seed data already present -- skipping (idempotent run_seed).")
             return

@@ -11,30 +11,22 @@ from app.repositories import indicator as indicator_repository
 from app.repositories import negotiation_event as event_repository
 
 
-# Μεθοδολογική αναθεώρηση 2026-08-21 (βλ. SEED_SOURCE.md για πλήρες
-# σκεπτικό + πηγές, PROJECT_STATUS.md για το πλήρες change-log):
-# - ECONOMIC category = GDP_absolute_usd + GDP_growth + unemployment_rate
-#   μαζί, ισοβαρή μέσο όρο (βλ. get_category_score). GDP_absolute_usd
-#   προστέθηκε (μέγεθος οικονομίας, national-power convention) ΧΩΡΙΣ να
-#   αφαιρεθεί το GDP_growth (ρυθμός μεταβολής) -- και τα δύο χρειάζονται:
-#   μόνο το GDP_growth έπιανε το σοκ του 1999 (P1), μόνο το
-#   GDP_absolute_usd έπιανε τη δομική ασυμμετρία μεγέθους Serbia/Kosovo.
-# - troop_presence_index -> military_expenditure_pct_gdp: το MILITARY
-#   category μετράει τώρα το ΙΔΙΟ indicator_type/πηγή (World Bank/SIPRI)
-#   και για τις δύο χώρες -- πριν συγκρίναμε Serbia spending% με Kosovo
-#   researcher-estimated foreign troop presence, εννοιολογικά ασύμβατα.
-#   troop_presence_index παραμένει context-only.
+# ECONOMIC = GDP_growth + GDP_absolute_usd + unemployment_rate, ισοβαρή
+# μέσο όρο (βλ. get_category_score). Το GDP_growth πιάνει σοκ/ρυθμό
+# μεταβολής (π.χ. την κατάρρευση του 1999), το GDP_absolute_usd το μέγεθος
+# της οικονομίας -- χρειάζονται και τα δύο. Πλήρες σκεπτικό/πηγές:
+# SEED_SOURCE.md.
+# MILITARY χρησιμοποιεί military_expenditure_pct_gdp (World Bank/SIPRI) και
+# για τις δύο χώρες, ίδιο indicator_type/πηγή -- το troop_presence_index
+# (ξένη στρατιωτική παρουσία) παραμένει context-only, εννοιολογικά
+# διαφορετικό μέγεθος.
 NORMALIZATION_RANGES = {
     "GDP_growth": (-20.0, 10.0),
-    # $1B-$100B, ΛΟΓΑΡΙΘΜΙΚΗ κλίμακα (βλ. LOG_SCALE_INDICATORS) -- γραμμική
-    # κλίμακα εδώ έκανε το Kosovo GDP component σχεδόν σταθερό χαμηλό
-    # (5-10.5% normalized, δομικό "ταβάνι" ανεξάρτητο από πραγματική
-    # οικονομική δυναμική). Log-scale: Kosovo 2008-2023 -> 35.8%-51.0%,
-    # πραγματικό εύρος διακύμανσης αντί για σχεδόν-σταθερή τιμή. Όριο
-    # $100B ίδιο βαθμονομημένο σκεπτικό με πριν (Croatia/Bulgaria, χωρίς
-    # τη Ρουμανία ως outlier)· κάτω όριο $1B επιλέχθηκε ρητά ΚΑΤΩ από το
-    # μικρότερο πραγματικό Kosovo GDP ($5.2B, 2008) ώστε να μην clamp-άρει
-    # στο μηδέν.
+    # $1B-$100B, λογαριθμική κλίμακα (βλ. LOG_SCALE_INDICATORS) -- γραμμική
+    # κλίμακα σε τόσο μεγάλο εύρος συνέθλιβε το μικρότερο Kosovo GDP σε μια
+    # σχεδόν σταθερή χαμηλή τιμή, ανεξάρτητα από πραγματική οικονομική
+    # δυναμική. Κάτω όριο κάτω από το μικρότερο πραγματικό Kosovo GDP
+    # ($5.2B, 2008) ώστε να μην clamp-άρει στο μηδέν.
     "GDP_absolute_usd": (1_000_000_000.0, 100_000_000_000.0),
     "freedom_house_score": (0.0, 100.0),
     "unemployment_rate": (0.0, 60.0),
@@ -42,13 +34,8 @@ NORMALIZATION_RANGES = {
     "military_expenditure_pct_gdp": (0.0, 8.0),
 }
 
-# indicator_types όπου ΧΑΜΗΛΟΤΕΡΗ raw τιμή σημαίνει ΙΣΧΥΡΟΤΕΡΗ θέση (π.χ.
-# ανεργία) -- το normalize() τα αντιστρέφει. Bug fix 2026-08-21: πριν,
-# ΚΑΘΕ indicator_type έπαιρνε "υψηλότερη raw τιμή = υψηλότερο score"
-# αδιακρίτως, οπότε π.χ. Serbia 2023 (ανεργία 8.27%, υγιής οικονομία)
-# έπαιρνε ΧΑΜΗΛΟΤΕΡΟ economic score από το 2005 (ανεργία 20.85%,
-# χειρότερη οικονομία) -- ανάποδη κατεύθυνση. Confirmed με πραγματικά
-# νούμερα, βλ. PROJECT_STATUS.md.
+# indicator_types όπου χαμηλότερη raw τιμή σημαίνει ισχυρότερη θέση (π.χ.
+# ανεργία) -- το normalize() τα αντιστρέφει.
 LOWER_IS_BETTER = {"unemployment_rate"}
 
 # indicator_types όπου η κλίμακα είναι λογαριθμική, όχι γραμμική --
@@ -87,11 +74,10 @@ def get_category_score(
     matching = [
         ind for ind in all_indicators
         if ind.year == year and ind.category.value == category
-        # Αγνοούμε indicator_types χωρίς normalization range -- σκόπιμα
-        # ΕΚΤΟΣ Power Index (π.χ. GDP_absolute_usd, καθαρά πληροφοριακό
-        # context, βλ. SEED_SOURCE.md). Χωρίς αυτό το φίλτρο, το
-        # normalize() παρακάτω θα έσκαγε με ValueError για κάθε τέτοιο
-        # indicator -- θα έσπαγε το Power Index αντί να το αφήνει ανέγγιχτο.
+        # Αγνοούμε indicator_types εκτός Power Index (context-only, π.χ.
+        # troop_presence_index, βλ. SEED_SOURCE.md) -- χωρίς αυτό το
+        # φίλτρο, το normalize() παρακάτω θα έσκαγε με ValueError για κάθε
+        # τέτοιο indicator.
         and ind.indicator_type in NORMALIZATION_RANGES
     ]
 
@@ -238,13 +224,12 @@ def _most_recent_year_with_data(
     db: Session, serbia_id: int, kosovo_id: int, year: int
 ) -> int | None:
     """
-    Το πιο πρόσφατο έτος στο KEY_YEARS πριν το `year` όπου ΚΑΙ οι δύο
+    Το πιο πρόσφατο έτος στο KEY_YEARS πριν το `year` όπου και οι δύο
     χώρες έχουν πλήρες Power Index -- χρησιμοποιείται σαν `previous_year`
-    στο calculate_window_score. ΠΡΙΝ τη διόρθωση (2026-08-03), το
-    find_optimal_mutual_compromise_period χρησιμοποιούσε απλά το
-    προηγούμενο στοιχείο της λίστας KEY_YEARS, ό,τι δεδομένα κι αν είχε
-    -- με αραιά KEY_YEARS αυτό συχνά έπεφτε σε έτος χωρίς δεδομένα,
-    μηδενίζοντας αθόρυβα το trend_score (30% βάρος στο Window Score).
+    στο calculate_window_score. Με αραιά KEY_YEARS, το απλά-προηγούμενο
+    στοιχείο της λίστας μπορεί να μην έχει δεδομένα, μηδενίζοντας αθόρυβα
+    το trend_score (30% βάρος στο Window Score) -- γι' αυτό ψάχνουμε αντί
+    να υποθέτουμε.
     """
     idx = KEY_YEARS.index(year)
     for candidate in reversed(KEY_YEARS[:idx]):
