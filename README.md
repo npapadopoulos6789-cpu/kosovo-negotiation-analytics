@@ -40,6 +40,28 @@ wasn't, ripe, by combining the Power Index/Window Score with negotiation
 theory concepts (ZOPA, BATNA, ripeness). The LLM never invents data -- it
 answers strictly from what already exists on the platform.
 
+## Beyond this case study
+
+The data model itself isn't locked to Serbia and Kosovo -- Country, Indicator,
+and NegotiationEvent are built around general negotiation-theory concepts
+(ZOPA, BATNA, ripeness, negotiation type), not this dispute specifically. If I
+added qualitative coding from another case study -- a different geopolitical
+conflict or negotiation -- I could run the same theoretical analysis on it:
+add the new actors (POST /countries), their quantitative data (POST
+/indicators), and my own qualitative coding of events (POST
+/negotiation-events). The Power Index and Window Score would compute
+automatically, no code changes needed, since they operate generically on
+country_id rather than being hardcoded to Serbia/Kosovo.
+
+Two things wouldn't generalize automatically today, though, and I want to be
+upfront about that:
+- The frontend (Dashboard charts, `useCountryLookup`) is currently hardcoded
+  to look up "Serbia"/"Kosovo" by name -- it would need adapting for a
+  different country pair or case study.
+- The LLM's system prompt contains specific historical context (Kosovo's
+  UNMIK administration, 1999-2007) tailored to this case study -- a different
+  case would need its own context written in.
+
 ## What it does
 
 - **Actors** -- state and international actors (Serbia, Kosovo, USA, EU,
