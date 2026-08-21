@@ -1,7 +1,11 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
+from app.core.config import FRONTEND_URL
+from app.core.rate_limit import limiter
 from app.api.country import router as country_router
 from app.api.indicator import router as indicator_router
 from app.api.negotiation_event import router as negotiation_event_router
@@ -31,13 +35,27 @@ app = FastAPI()
 # 5186, ...), οπότε ένα σταθερό port έσπαγε το CORS κάθε τόσο. Ο regex
 # περιορίζεται ρητά σε localhost (οποιοδήποτε port) -- ασφαλές για dev,
 # ΔΕΝ επιτρέπει κανένα εξωτερικό domain.
+#
+# allow_origins: επιπλέον, ρητό production origin (Railway frontend domain
+# κ.λπ.) από το FRONTEND_URL env var -- άδεια λίστα αν δεν έχει οριστεί
+# (τοπικό dev), συνυπάρχει με το allow_origin_regex παραπάνω χωρίς να το
+# αντικαθιστά (το Starlette CORSMiddleware επιτρέπει origin αν ταιριάζει
+# ΕΙΤΕ στο allow_origins ΕΙΤΕ στο allow_origin_regex).
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[FRONTEND_URL] if FRONTEND_URL else [],
     allow_origin_regex=r"http://localhost:\d+",
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=False,
 )
+
+# Rate limiting (slowapi) -- βλ. app/core/rate_limit.py. Χρειάζεται
+# app.state.limiter + exception handler για RateLimitExceeded (429) εδώ σε
+# επίπεδο app· τα ίδια τα όρια δηλώνονται ανά route (@limiter.limit(...))
+# στα routers που καλούν πραγματικό Anthropic API.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(country_router)
 app.include_router(indicator_router)

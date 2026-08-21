@@ -8,7 +8,10 @@
 // ΑΚΡΙΒΕΣ path string όπως ορίζεται στο αντίστοιχο backend router -- κανένα
 // hardcode-άρισμα εδώ.
 
-const BASE_URL = "http://localhost:8000";
+// VITE_API_URL: production backend origin (Railway κ.λπ.), set στο build
+// environment. Fallback σε localhost:8000 όταν λείπει, ώστε το τοπικό dev
+// να συνεχίσει να δουλεύει χωρίς καμία αλλαγή.
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export class ApiError extends Error {
   status: number;

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.services import negotiation_analysis as analysis_service
 from app.schemas.negotiation_analysis import NegotiationAnalysisCreate, NegotiationAnalysisRead
 
@@ -24,7 +25,8 @@ def list_analyses_by_event(event_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=NegotiationAnalysisRead, status_code=201)
-def create_analysis(payload: NegotiationAnalysisCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/hour")
+def create_analysis(request: Request, payload: NegotiationAnalysisCreate, db: Session = Depends(get_db)):
     # Χωρίς require_admin -- κάθε συνδεδεμένος χρήστης (ADMIN ή VIEWER)
     # μπορεί να ζητήσει LLM analysis· μόνο η διαχείριση δεδομένων
     # (Country/Indicator/Event) είναι ADMIN-only.

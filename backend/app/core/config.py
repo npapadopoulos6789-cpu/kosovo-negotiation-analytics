@@ -13,3 +13,7 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+
+# Production frontend origin (π.χ. Railway domain) για CORS -- None σε
+# τοπικό dev, δεν επηρεάζει το ήδη υπάρχον allow_origin_regex (localhost).
+FRONTEND_URL = os.getenv("FRONTEND_URL")
