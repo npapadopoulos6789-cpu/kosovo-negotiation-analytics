@@ -59,13 +59,18 @@ FUTURE WORK (δεν υλοποιείται τώρα, βλ. SEED_DATA_SPEC.md ε�
   Firepower Index απορρίφθηκε -- αδιαφανής/υποκειμενική μεθοδολογία,
   τεκμηριωμένο σε πολλαπλές ανεξάρτητες πηγές (βλ. SEED_SOURCE.md §3.7)
 """
+from app.core.config import ADMIN_EMAIL, ADMIN_PASSWORD
 from app.core.database import SessionLocal
+from app.models.user import UserRole
+from app.repositories import user as user_repository
 from app.services import country as country_service
 from app.services import indicator as indicator_service
 from app.services import negotiation_event as event_service
+from app.services import user as user_service
 from app.schemas.country import CountryCreate
 from app.schemas.indicator import IndicatorCreate
 from app.schemas.negotiation_event import NegotiationEventCreate, ParticipantCreate
+from app.schemas.user import UserCreate
 
 
 def seed_countries(db):
@@ -565,9 +570,43 @@ def seed_events(db, country_ids: dict):
         print(f"  Event: {event_data['title']}")
 
 
+def seed_admin_user(db):
+    """
+    Idempotent -- δημιουργεί τον αρχικό ADMIN χρήστη ΜΟΝΟ αν δεν υπάρχει
+    ήδη κανένας ADMIN στη ΒΔ. Ξεχωριστό guard από το country-based
+    idempotency check του run_seed() παρακάτω -- πρέπει να δουλεύει σωστά
+    ακόμα κι αν καλεστεί ξανά σε ΒΔ που έχει ήδη countries/indicators/events
+    αλλά (π.χ.) ο admin διαγράφηκε χειροκίνητα.
+
+    ADMIN_EMAIL/ADMIN_PASSWORD από env vars (app/core/config.py, ίδιο μοτίβο
+    με ANTHROPIC_API_KEY). Αν λείπουν (τοπικό dev χωρίς να έχουν οριστεί):
+    fallback σε dev-only default credentials, με ρητό warning.
+    """
+    if user_repository.get_by_role(db, UserRole.ADMIN) is not None:
+        print("Admin user already exists -- skipping (idempotent seed_admin_user).")
+        return
+
+    email = ADMIN_EMAIL
+    password = ADMIN_PASSWORD
+    if not email or not password:
+        email = "admin@local.dev"
+        password = "devonly123"
+        print(
+            "WARNING: Using default dev admin credentials -- set "
+            "ADMIN_EMAIL/ADMIN_PASSWORD env vars in production"
+        )
+
+    user_service.register_user(
+        db, UserCreate(email=email, password=password, role=UserRole.ADMIN)
+    )
+    print(f"  Admin user created: {email}")
+
+
 def run_seed():
     db = SessionLocal()
     try:
+        seed_admin_user(db)
+
         # Idempotency guard -- χωρίς αυτό, ένα δεύτερο τρέξιμο πάνω σε ήδη
         # γεμάτη ΒΔ θα έσκαγε σε duplicate-key errors (κανένα ON CONFLICT
         # στο repository layer). Απαραίτητο γιατί το api container του

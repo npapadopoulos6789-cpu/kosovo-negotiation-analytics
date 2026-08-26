@@ -187,8 +187,12 @@ Brings up all 3 services (`db`, `api`, `frontend`) -- migrations and seed
 data run automatically on first startup. Frontend: http://localhost:3000,
 API: http://localhost:8000/docs (Swagger).
 
-Needs a `backend/.env` with `DATABASE_URL`, `JWT_SECRET_KEY`,
-`ANTHROPIC_API_KEY` (see the variable names in `app/core/config.py`).
+Needs a `backend/.env` -- copy `backend/.env.example` and fill in real
+values (`DATABASE_URL`, `JWT_SECRET_KEY`, `ANTHROPIC_API_KEY`; see
+`app/core/config.py` for the full list). `ADMIN_EMAIL`/`ADMIN_PASSWORD`
+can stay blank locally -- the seed script falls back to a dev-only default
+admin account with a warning, but I set them explicitly on the production
+deployment (Railway) so the real site doesn't run on default credentials.
 
 ### Manually (without Docker, for development)
 
