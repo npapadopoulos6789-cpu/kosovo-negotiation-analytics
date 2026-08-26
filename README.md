@@ -75,17 +75,61 @@ upfront about that:
   implementation -- the central finding: conditions were ripe in 2013/2023,
   but implementation stayed low)
 - **Synthesis / Compare / per-event Q&A** -- LLM interpretation (Anthropic
-  Claude) over existing data, with an explicit disclaimer on every answer
+  Claude) over existing data, answering in the same language the question was
+  asked in, with an explicit disclaimer on every answer
 
-## The golden rule: separation of data sources
+## Methodology
 
-| Data | Source |
-|---|---|
-| Historical/economic/military/social | The thesis -- manually entered seed data |
-| Power Index / Window Score / Optimal Periods | Our own code, deterministic computation, NOT the LLM |
-| Interpretation (Synthesis/Compare/Q&A) | LLM over existing data -- never a source of new facts/figures |
+Every number on this platform that isn't raw seed data goes through the same
+four-stage, fully deterministic pipeline (no LLM involvement, all in
+`backend/app/services/analytics.py`):
 
-Full source breakdown per indicator: [SEED_SOURCE.md](SEED_SOURCE.md).
+1. **Normalize** -- each indicator (e.g. GDP growth of -10.33%) is rescaled to
+   a common 0-100 range, with fixed min/max bounds per indicator type. For
+   `unemployment_rate` the direction is inverted (a lower raw value produces
+   a higher score). `GDP_absolute_usd` and `military_expenditure_usd` use a
+   logarithmic scale instead of linear -- Serbia's economy and military
+   budget are roughly an order of magnitude larger than Kosovo's, and a
+   linear scale would flatten Kosovo into a near-constant low score
+   regardless of real change.
+2. **Category score** -- for each country/year, the normalized indicators in
+   the same category (ECONOMIC, MILITARY, SOCIAL_UNREST) are averaged.
+   ECONOMIC combines up to four indicators (GDP growth, GDP absolute size,
+   unemployment, FDI net inflows); MILITARY combines two (military
+   expenditure as % of GDP and in absolute USD); SOCIAL_UNREST is the
+   Freedom House score alone.
+3. **Power Index** (0-100, per country/year) -- the three category scores
+   combined as Economic 40% + Military 40% + Social 20%.
+4. **Window Score** (0-100, per year) -- estimates how ripe a given year was
+   for agreement: power symmetry between Serbia and Kosovo (50%, `100 -
+   Power Gap`) + mutual decline in power relative to the previous available
+   year (30%, a Zartman "mutually hurting stalemate" signal) + social
+   stability (20% -- higher domestic stability contributes positively; see
+   Limitations for why).
+
+**Data sources:** the 10 negotiation events and their qualitative fields
+(ZOPA, ripeness, BATNA, red lines) come from my thesis, entered as seed data.
+The quantitative indicators are a mix -- some read directly from thesis
+charts, others pulled from the World Bank API (GDP, unemployment, military
+expenditure, FDI) and Freedom House. Full source-by-source breakdown,
+confidence levels, and every indicator I researched and rejected:
+[SEED_SOURCE.md](SEED_SOURCE.md).
+
+**The weight percentages (40/40/20, 50/30/20) are my own design, not an
+empirical or cited result.** I looked at the Composite Index of National
+Capability (CINC, Correlates of War project) as a point of reference -- the
+closest established analogue, a similarly-composed national-power score --
+but didn't adopt its methodology. CINC uses six unweighted, globally-
+normalized components (population, urban population, steel production,
+energy consumption, military spending, military personnel), built for
+comparing states across the entire international system since 1816. Several
+of those components are structurally meaningless for a young, small state
+like Kosovo, and CINC's world-share normalization would flatten both
+countries into a near-constant low score regardless of their real relative
+dynamic -- the same distortion I found and fixed with linear GDP scaling.
+My weights reflect my own judgment about what matters most in this
+negotiation context, not a citable methodology. Full comparison:
+[SEED_SOURCE.md §9](SEED_SOURCE.md).
 
 ## Limitations
 
@@ -109,22 +153,16 @@ hide them behind smooth-looking charts.
 - **No reliable, symmetric source for military capability beyond spending
   exists for this pair of countries.** I looked: IISS Military Balance is
   subscription-only, Global Firepower Index has documented, non-transparent
-  methodology (multiple independent sources call it unreliable), and SIPRI
-  arms-transfer data is real but too sparse for Kosovo to be useful. Full
-  research trail, including cross-checks against the CIA World Factbook,
-  in [SEED_SOURCE.md](SEED_SOURCE.md).
-- **The weight percentages are my own design, not a citation.** Power Index
-  (40% Economic / 40% Military / 20% Social) and Window Score (50% power
-  symmetry / 30% mutual decline / 20% social stability) reflect my own
-  theoretical judgment about what matters most in this context -- they
-  aren't drawn from an established methodology, and I'm not aware of a
-  citable source for these specific splits. The underlying *data* is sourced
-  and verifiable (see above); the *weighting* is my own design choice. Full
-  discussion, including why this isn't the same as the CINC national-power
-  index it takes inspiration from: [SEED_SOURCE.md §9](SEED_SOURCE.md).
+  methodology (multiple independent sources call it unreliable), SIPRI
+  arms-transfer data is real but too sparse for Kosovo to be useful, and the
+  Correlates of War capability dataset has no personnel data for Kosovo at
+  all. Full research trail, including cross-checks against the CIA World
+  Factbook: [SEED_SOURCE.md](SEED_SOURCE.md).
+- **The weight percentages are my own design, not a citation** -- see
+  Methodology above for the full explanation and the comparison with CINC.
 - **Social stability, not instability, contributes positively to the Window
-  Score** (updated 2026-08-21). Earlier this credited *instability* as
-  "pressure toward compromise" -- backwards. Per the thesis (Putnam's
+  Score.** An earlier version of this got the direction backwards, crediting
+  *instability* as "pressure toward compromise." Per the thesis (Putnam's
   Two-Level Game, cited in [SEED_SOURCE.md §7](SEED_SOURCE.md)), domestic
   political instability narrows a leader's negotiating "win set" and raises
   the political cost of concessions, making agreement harder, not easier.
@@ -133,7 +171,8 @@ hide them behind smooth-looking charts.
 
 ## Tech stack
 
-**Backend:** FastAPI, SQLAlchemy, Alembic, PostgreSQL, Anthropic Claude API, pytest
+**Backend:** FastAPI, SQLAlchemy, Alembic, PostgreSQL, Anthropic Claude API,
+slowapi (rate limiting), pytest
 **Frontend:** React, TypeScript, Vite, React Router, TanStack Query, Recharts
 
 ## Running it
@@ -173,7 +212,7 @@ npm run dev                                      # :5173
 
 ```bash
 cd backend
-pytest -q                # 90 tests -- unit (mocked) + integration (test DB)
+pytest -q                # 92 tests -- unit (mocked) + integration (test DB)
 ```
 
 ## Structure
@@ -191,7 +230,23 @@ module → hook/component → page (frontend).
 
 ## Documentation
 
-- [SEED_SOURCE.md](SEED_SOURCE.md) -- full data-source breakdown per indicator/event
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) -- detailed session-by-session log (agent-facing, in Greek)
-- [PROJECT_PLAN.md](PROJECT_PLAN.md) -- original roadmap, milestone-level (in Greek)
-- [CLAUDE.md](CLAUDE.md) -- instructions for the AI coding agent: architecture rules, conventions (in Greek)
+Everything above is enough to understand the platform. These are supporting
+documents, each written for a different purpose:
+
+- [SEED_SOURCE.md](SEED_SOURCE.md) -- the full data-source breakdown, one
+  entry per indicator and event: where every number comes from, its
+  confidence level, and the complete research trail for indicators I
+  considered and rejected (IISS, SIPRI arms transfers, CINC, Correlates of
+  War, CIA World Factbook, and others). Read this to verify a specific
+  figure.
+- [PROJECT_STATUS.md](PROJECT_STATUS.md) -- a detailed, session-by-session
+  development log, in Greek, written for my own reference while building
+  this with an AI coding assistant. Not necessary reading for evaluating the
+  project.
+- [PROJECT_PLAN.md](PROJECT_PLAN.md) -- the original roadmap, at a
+  milestone level, in Greek. Mostly historical at this point -- kept for
+  context on how the project was originally scoped.
+- [CLAUDE.md](CLAUDE.md) -- the instructions file I wrote for the AI coding
+  agent: architecture rules, conventions, business rules, what not to do.
+  In Greek. Documents how I structured the human-AI collaboration on this
+  project, not something you need to read to evaluate the platform itself.

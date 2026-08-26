@@ -26,7 +26,7 @@ FastAPI REST API + React dashboard που μετατρέπει τα ευρήμα
 **ΔΕΝ υπάρχει live API-fetching κώδικας πουθενά στο repo** (κανένα `import requests`,
 καμία κλήση σε worldbank.org). Το `backend/app/scripts/seed.py` περιέχει
 **χειροκίνητα καταγεγραμμένες, πραγματικές ιστορικές τιμές**, με το εξής μείγμα πηγών
-ανά δείκτη (τεκμηριωμένο στα σχόλια πηγής κάθε εγγραφής — βλ. και `SEED_DATA_SPEC.md`):
+ανά δείκτη (τεκμηριωμένο στα σχόλια πηγής κάθε εγγραφής — βλ. και `SEED_SOURCE.md`):
 
 - Serbia `GDP_growth`, `unemployment_rate`, `military_expenditure_pct_gdp` — πραγματικές
   δημοσιευμένες τιμές του World Bank Open Data API (κωδικοί δεικτών NY.GDP.MKTP.KD.ZG,
@@ -162,7 +162,7 @@ pytest -x -q
 python -m app.scripts.seed                # δεδομένα διπλωματικής (is_verified=true)
 
 # Frontend
-cd frontend && npm run dev                # :5173 -- ΔΕΝ υπάρχει ακόμα ο φάκελος
+cd frontend && npm run dev                # :5173
 ```
 
 ## Συμβάσεις
@@ -206,5 +206,5 @@ cd frontend && npm run dev                # :5173 -- ΔΕΝ υπάρχει ακ�
 ποιο στρώμα, ποιος κανόνας), προτίμησε το απλό από το έξυπνο, και δείξε πώς το νέο κομμάτι
 ακολουθεί το υπάρχον Country slice ως πρότυπο. Το τρέχον "πού βρισκόμαστε" είναι στο
 PROJECT_STATUS.md (ενημερώνεται κάθε session) — το PROJECT_PLAN.md είναι το αρχικό
-roadmap (ολοκληρωμένο πλέον εκτός frontend), κράτα το ενημερωμένο μόνο σε επίπεδο
-milestones, όχι session-by-session λεπτομέρειας.
+roadmap, πλέον ολοκληρωμένο (backend + frontend), κράτα το ενημερωμένο μόνο σε
+επίπεδο milestones, όχι session-by-session λεπτομέρειας.

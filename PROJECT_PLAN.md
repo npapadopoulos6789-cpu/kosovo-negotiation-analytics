@@ -3,58 +3,42 @@
 Agent-facing χρονοδιάγραμμα/roadmap. Για το domain model, τους κανόνες και τις
 συμβάσεις δες [CLAUDE.md](CLAUDE.md) — αυτό εδώ είναι μόνο "πού είμαστε / τι ακολουθεί".
 
-**Ενημερώθηκε:** 2026-08-04 · **Branch:** `main` · **Τελευταία αλλαγή:**
-LLM integration ολοκληρώθηκε (Anthropic Claude, `POST /synthesis` +
-per-event Q&A, πραγματικά live-δοκιμασμένα) + 3ο previous_year bug
-βρέθηκε/διορθώθηκε στο analytics endpoint + security fix (committed
-`.env`, JWT rotation) — βλ. PROJECT_STATUS.md για πλήρεις λεπτομέρειες
-
-**⚠️ Αυτό το αρχείο είναι το αρχικό roadmap, όχι το ζωντανό status. Για το
-ακριβές "πού βρισκόμαστε τώρα" δες το [PROJECT_STATUS.md](PROJECT_STATUS.md),
-που ενημερώνεται κάθε session — αυτό εδώ ενημερώνεται μόνο σε milestones.**
+**Κατάσταση:** αυτό το roadmap είναι πλέον ολοκληρωμένο — backend και frontend
+και τα δύο σε παραγωγική μορφή, deployment-ready (Railway prep). Το αρχείο
+μένει εδώ ως ιστορικό αρχικού σχεδιασμού· το ένα ανοιχτό σημείο που απομένει
+είναι μέρος του Actors feature (§8 παρακάτω). Για το ζωντανό, session-by-session
+status δες το [PROJECT_STATUS.md](PROJECT_STATUS.md) — αυτό εδώ ενημερώνεται
+μόνο σε επίπεδο milestones.
 
 ---
 
 ## Status snapshot
 
-Όλα τα vertical slices του roadmap έχουν κλείσει εκτός από το frontend (#8).
-
 | Κομμάτι | Κατάσταση |
 |---|---|
 | FastAPI app (skeleton, `GET /` health) | ✅ |
 | DB connection (`Base`, `get_db()`) | ✅ |
-| PostgreSQL via Docker Compose | ✅ |
-| Alembic — 5 migrations, όλες εφαρμοσμένες | ✅ |
-| **`Country` slice** | ✅ ολοκληρώθηκε |
-| **`User` + JWT auth (`require_admin` σε όλα τα write endpoints)** | ✅ ολοκληρώθηκε |
-| **`Indicator` slice** | ✅ ολοκληρώθηκε |
-| **Business rules / analytics core** (Power Index, Power Gap, Window Score,
-  Optimal Agreement/Mutual Compromise Period, Best Moments) | ✅ ολοκληρώθηκε,
-  22 unit tests |
-| **`NegotiationEvent` (+ `event_participants`)** | ✅ ολοκληρώθηκε |
-| **`NegotiationAnalysis` + LLM integration** | ✅ ολοκληρώθηκε (2026-08-04) —
-  Anthropic Claude (`claude-sonnet-4-6`), όχι OpenAI· per-event Q&A +
-  `POST /synthesis`, και τα δύο πραγματικά live-δοκιμασμένα |
-| **Seed script** | ✅ πλήρες SEED_DATA_SPEC.md set: 10 events (E1-E10), 59
-  indicators, `confidence`/`implementation_success` πεδία — μόνο τα
-  προαιρετικά "Future Work" indicators του spec (§2.1-2.4) λείπουν ακόμα |
-| **P1-P5 validation tests** | ✅ 6 tests, integration-style σε πραγματική ΒΔ.
-  P1/P2/P4 rescoped (κάλυψη δεδομένων), P3 επιβεβαιώνεται (μετά από bug fix),
-  P5 τεκμηριωμένο ως μη-επιβεβαιωμένο (μεθοδολογικός περιορισμός, όχι bug) |
-| `requirements.txt` + `pytest.ini` | ✅ (διορθώθηκε 2026-08-02: έλειπαν
-  `bcrypt`/`python-jose`/`email-validator`) |
-| Tests (unit/integration) | ✅ **82 passed** — αλλά κενά coverage: όχι unit
-  test για User service, όχι integration tests για negotiation-analyses/
-  analytics/synthesis (τα LLM calls επιβεβαιώθηκαν live/χειροκίνητα) |
-| Docker Compose πλήρες stack (api + frontend services) | ❌ — μόνο `db` υπάρχει |
-| README.md (ο άνθρωπος-αναγνώστης) | ❌ — δεν έχει γραφτεί ακόμα |
-| **Actors feature** (SUPPORTER role, role_description, China/India/OSCE/ICJ, `GET /countries/{id}/events`) | ❌ — προτεινόμενο, βλ. #8 παρακάτω |
-| Frontend (React dashboard) | ❌ — δεν υπάρχει καν ο φάκελος |
+| PostgreSQL via Docker Compose (db + api + frontend, πλήρες stack) | ✅ |
+| Alembic migrations, όλες εφαρμοσμένες | ✅ |
+| `Country` slice | ✅ ολοκληρώθηκε |
+| `User` + JWT auth (`require_admin` σε όλα τα write endpoints) | ✅ ολοκληρώθηκε |
+| `Indicator` slice | ✅ ολοκληρώθηκε |
+| Business rules / analytics core (Power Index, Power Gap, Window Score, Optimal Agreement/Mutual Compromise Period, Best Moments) | ✅ ολοκληρώθηκε |
+| `NegotiationEvent` (+ `event_participants`) | ✅ ολοκληρώθηκε |
+| `NegotiationAnalysis` + LLM integration | ✅ ολοκληρώθηκε — Anthropic Claude (`claude-sonnet-4-6`), per-event Q&A + `POST /synthesis` + `POST /compare`, απαντά στη γλώσσα της ερώτησης |
+| Seed script | ✅ 12 countries/actors, 111 indicators, 10 negotiation events (E1-E10) |
+| P1-P5 validation tests | ✅ 7 tests σε πραγματική ΒΔ — όλα επιβεβαιωμένα, λεπτομέρειες στο [SEED_SOURCE.md](SEED_SOURCE.md) |
+| Tests (unit/integration) | ✅ **92 passed** |
+| README.md | ✅ πλήρης οδηγός για αξιολόγηση του project |
+| Rate limiting, CORS, production env vars (Railway prep) | ✅ |
+| Frontend (React dashboard, όλες οι οθόνες) | ✅ ολοκληρώθηκε |
+| **Actors feature** — SUPPORTER role, role_description, China/India/OSCE/ICJ, frontend badges | ✅ ολοκληρώθηκε |
+| `GET /countries/{id}/events` endpoint | ⏸ δεν έχει υλοποιηθεί ακόμα, βλ. §8 |
 
 Λεπτομέρειες/ανοιχτά ζητήματα (World Bank data sourcing vs ΧΡΥΣΟ ΚΑΝΟΝΑ, analytics
 router pattern deviation) στο [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
-## ✅ Αποφασισμένα (πρώην ασυνέπειες, ενημερώθηκε το CLAUDE.md)
+## Αποφασισμένα (πρώην ασυνέπειες, ενημερώθηκε το CLAUDE.md)
 
 1. **Entrypoint θέση.** Μένει στο `backend/main.py` (όχι `app/main.py`). Τρέχει με
    `uvicorn main:app` μέσα από το `backend/`. Routers θα κάνουν include σε αυτό
@@ -69,7 +53,7 @@ router pattern deviation) στο [PROJECT_STATUS.md](PROJECT_STATUS.md).
 schema (Pydantic v2) → router → unit tests (service) → integration tests (router).
 Δεν ξεκινάει το επόμενο slice πριν κλείσει το προηγούμενο.
 
-### 1. Country ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ
+### 1. Country -- ΟΛΟΚΛΗΡΩΘΗΚΕ
 Model + migration + repository (CRUD) + service (custom exceptions
 `CountryNotFoundError`, `DuplicateCountryNameError`) + schema (Pydantic v2:
 `CountryCreate`/`CountryUpdate`/`CountryRead`) + router (`/countries`, full
@@ -80,85 +64,75 @@ Domain exceptions → HTTP status μέσω `@app.exception_handler` στο `main
 `get_current_user`/`require_admin` dependencies. **Αυτό είναι το πρότυπο
 pattern για όλα τα επόμενα slices.**
 
-### 2. User + Auth ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ
+### 2. User + Auth -- ΟΛΟΚΛΗΡΩΘΗΚΕ
 `User` model (email, hashed_password, role) → JWT login/register →
 `get_current_user` / `require_admin` dependencies, εφαρμοσμένα σε όλα τα
 write endpoints (Country/Indicator/NegotiationEvent).
 
-### 3. Indicator ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ
+### 3. Indicator -- ΟΛΟΚΛΗΡΩΘΗΚΕ
 Model (country_id FK, category enum, indicator_type, year, value, unit, source,
 is_verified) → CRUD slice. Το "verify" γίνεται μέσω του γενικού
 `PUT /indicators/{id}` (ήδη ADMIN-only), όχι ξεχωριστό endpoint.
 
-### 4. Power Index / Power Gap / Window Score / Optimal Periods ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ
+### 4. Power Index / Power Gap / Window Score / Optimal Periods -- ΟΛΟΚΛΗΡΩΘΗΚΕ
 `app/services/analytics.py`, καθαρά ντετερμινιστικό, ΧΩΡΙΣ LLM. Weights:
-Economic 40% / Military 40% / Social 20%. 22 unit tests με mocked repositories.
-Επιπλέον `find_best_moments` (confidence HIGH/MEDIUM/LOW) πέρα από το αρχικό σχέδιο.
+Economic 40% / Military 40% / Social 20%. Επιπλέον `find_best_moments`
+(confidence HIGH/MEDIUM/LOW) πέρα από το αρχικό σχέδιο. Πλήρης μεθοδολογία,
+συμπεριλαμβανομένης της σύγκρισης με το CINC: [SEED_SOURCE.md §9](SEED_SOURCE.md).
 
-### 5. NegotiationEvent (+ event_participants) ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ
+### 5. NegotiationEvent (+ event_participants) -- ΟΛΟΚΛΗΡΩΘΗΚΕ
 Model με τα ZOPA/ripeness/BATNA/red lines πεδία + association table
 (event_id, country_id, role) διαχειρίζεται μέσα από το event schema. Business
 rule: `economic_weight + military_weight + social_weight == 10` → 422.
 
-### 6. NegotiationAnalysis + LLM integration ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ (2026-08-04)
-Model + CRUD slice + πραγματικό LLM call, και τα δύο έτοιμα. Πάροχος:
-**Anthropic Claude** (`claude-sonnet-4-6`, `temperature=0`, JSON response) —
-απόφαση που αντικατέστησε το αρχικό σχέδιο για OpenAI (ποτέ υλοποιημένο,
-μόνο σχόλιο πρόθεσης). Context: δομημένα πεδία event + Indicators ±2 έτη
-(Q&A) ή όλα τα events + timeline + optimal periods + best_moments
-(synthesis) + participants. `POST /negotiation-analyses` (per-event Q&A)
-και `POST /synthesis` (γενική ανάλυση, `is_synthesis=true`) και τα δύο
-πραγματικά δοκιμασμένα live. Λεπτομέρειες: PROJECT_STATUS.md.
+### 6. NegotiationAnalysis + LLM integration -- ΟΛΟΚΛΗΡΩΘΗΚΕ
+Model + CRUD slice + πραγματικό LLM call. Πάροχος: **Anthropic Claude**
+(`claude-sonnet-4-6`, `temperature=0`, JSON response) — αντικατέστησε το
+αρχικό σχέδιο για OpenAI (ποτέ υλοποιημένο). Context: δομημένα πεδία event +
+Indicators ±2 έτη (Q&A) ή όλα τα events + timeline + optimal periods +
+best_moments (synthesis) + participants. `POST /negotiation-analyses`
+(per-event Q&A), `POST /synthesis` (γενική ανάλυση) και `POST /compare`
+(σύγκριση δύο events). Απαντά στην ίδια γλώσσα με την ερώτηση του χρήστη.
+Λεπτομέρειες: PROJECT_STATUS.md.
 
-### 7. Seed script ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ, πλήρες SEED_DATA_SPEC.md σετ
-`python -m app.scripts.seed` — 9 countries/actors, 59 indicators (πραγματικές
-τιμές World Bank API + Freedom House chart), 10 negotiation events (E1-E10),
-πεδία `confidence`/`implementation_success`. Μόνο τα προαιρετικά "Future Work"
-indicators του spec §2.1-2.4 λείπουν ακόμα (χαμηλή προτεραιότητα).
+### 7. Seed script -- ΟΛΟΚΛΗΡΩΘΗΚΕ
+`python -m app.scripts.seed` — 12 countries/actors, 111 indicators (μείγμα
+πραγματικών τιμών από τη διπλωματική, World Bank API, Freedom House),
+10 negotiation events (E1-E10), πεδία `confidence`/`implementation_success`.
+Πλήρης πηγή ανά indicator: [SEED_SOURCE.md](SEED_SOURCE.md).
 
-### 7b. Validation tests P1-P5 ✅ ΟΛΟΚΛΗΡΩΘΗΚΕ (2026-08-03)
+### 7b. Validation tests P1-P5 -- ΟΛΟΚΛΗΡΩΘΗΚΕ
 `tests/unit/test_validation_targets.py` — ελέγχει αν ο analytics πυρήνας
-αναπαράγει τα ποιοτικά συμπεράσματα Κεφ. 4 της διπλωματικής. Στην πορεία
-βρέθηκαν και διορθώθηκαν 2 πραγματικά bugs στο `previous_year` logic του
-Window Score (`find_optimal_mutual_compromise_period`, `find_best_moments`)
-— άλλαξε πραγματικά αποτελέσματα (2013 έγινε το optimal window αντί για
-2023, 2 events ανέβηκαν σε HIGH confidence). Λεπτομέρειες/πραγματικές τιμές
-στο PROJECT_STATUS.md.
+αναπαράγει τα ποιοτικά συμπεράσματα Κεφ. 4 της διπλωματικής, σε πραγματική
+ΒΔ. Και οι 5 προτάσεις επιβεβαιωμένες ή τεκμηριωμένα rescoped βάσει κάλυψης
+δεδομένων· το κεντρικό εύρημα (2013 = optimal window) επιβίωσε πολλαπλές
+μεθοδολογικές αναθεωρήσεις. Πλήρες ιστορικό στο PROJECT_STATUS.md.
 
-### 8. Actors feature ❌ ΠΡΟΤΕΙΝΟΜΕΝΟ, δεν έχει ξεκινήσει
+### 8. Actors feature -- ΣΧΕΔΟΝ ΟΛΟΚΛΗΡΩΘΗΚΕ
 Πρόταση από την εξαγωγή δρώντων της διπλωματικής (κεφ. 3.1+3.2, βλ.
 [SEED_SOURCE.md](SEED_SOURCE.md) ενότητες 1/4/5/7 για τα raw δεδομένα). Στόχος:
 αναδείξει ΠΟΙΟΣ δρώντας κρατούσε τη μόχλευση σε κάθε event (κρίσιμο για το
 `/compare`, βλ. SEED_SOURCE.md §7 "μετατόπιση τύπου ισχύος").
 
-Βήματα (σειρά προτεραιότητας):
-1. **Νέος ρόλος `SUPPORTER`** στο `ParticipantRole` enum (μαζί με `PARTY`,
-   `MEDIATOR`, `GUARANTOR`). Χωρίς αυτόν δεν αποτυπώνεται η γεωπολιτική
-   στήριξη χωρίς συμμετοχή στο τραπέζι (π.χ. Russia/China SUPPORTER(Serbia)
-   μέσω απειλής βέτο, χωρίς να "μεσολαβούν"). Migration.
-2. **Νέο πεδίο `role_description`** (Text, nullable) στο `Country` model —
-   μικρό migration. Seed content έτοιμο στο SEED_SOURCE.md §5.
-3. **Νέοι δρώντες στο seed** (επιβεβαιωμένα λείπουν σήμερα): China (ήδη
-   Country row αλλά 0 event_participants), India, OSCE, ICJ.
-4. **Ενημέρωση `event_participants`** με τα SUPPORTER links του SEED_SOURCE.md
-   §4 (π.χ. Russia/China SUPPORTER σε Rambouillet, Ψήφισμα 1244, Ahtisaari,
-   UDI, Ουάσιγκτον, Οχρίδα — κανένα από αυτά τα links δεν υπάρχει σήμερα).
-5. **Endpoint** `GET /countries/{id}/events` — events ενός δρώντα με τον ρόλο
-   του σε καθένα. Δεν υπάρχει σήμερα κανένα "events by participant" query σε
-   repository/service/router (επιβεβαιωμένο, session 2026-08-05).
-6. **LLM context**: το synthesis/compare context να συμπεριλάβει τα
-   SUPPORTER links + το SEED_SOURCE.md §7, ώστε το LLM να αναδεικνύει τη
-   μετατόπιση στρατιωτική→οικονομική μόχλευση.
-7. **Frontend**: badges ανά ρόλο στην οθόνη event· κλικ σε δρώντα →
-   `role_description` + λίστα events· χρωματισμός ανά `geopolitical_bloc`.
+Κατάσταση ανά βήμα:
+1. Ρόλος `SUPPORTER` στο `ParticipantRole` enum -- ολοκληρώθηκε.
+2. Πεδίο `role_description` (Text, nullable) στο `Country` model -- ολοκληρώθηκε.
+3. Νέοι δρώντες στο seed (China, India, OSCE, ICJ) -- ολοκληρώθηκε.
+4. `event_participants` με τα SUPPORTER links του SEED_SOURCE.md §4 -- ολοκληρώθηκε.
+5. **Endpoint `GET /countries/{id}/events`** -- ΔΕΝ υλοποιήθηκε ακόμα. Το μόνο
+   ανοιχτό σημείο του roadmap. Δεν υπάρχει σήμερα κανένα "events by
+   participant" query σε repository/service/router.
+6. LLM context: το synthesis/compare context ήδη περιλαμβάνει όλους τους
+   participants (γενικά, όχι ειδικά highlighted SUPPORTER links).
+7. Frontend badges ανά ρόλο/`geopolitical_bloc`, `role_description` στην
+   οθόνη δρώντα -- ολοκληρώθηκε (`ActorsPage`, `ActorDetailPage`).
 
-### 9. Frontend (React dashboard)
-Ξεκινάει αφού το API έχει τουλάχιστον Country + Indicator + NegotiationEvent +
-Power Index endpoints σταθερά, ώστε να μη χρειάζεται ανασχεδιασμός contracts.
+### 9. Frontend (React dashboard) -- ΟΛΟΚΛΗΡΩΘΗΚΕ
+Dashboard, Actors, Events, Synthesis, Compare -- όλες οι οθόνες.
 
-**Οθόνη Συμπερασμάτων — ιδέες οπτικοποίησης** (μεταφέρθηκε από πρώην
-`SEED_DATA_SPEC.md` §5). Τέσσερις ενότητες, καθεμία δεμένη με υπολογισμένο
-δεδομένο, όχι στατικό κείμενο:
+**Οθόνη Συμπερασμάτων — ιδέες οπτικοποίησης, όπως αρχικά σχεδιάστηκαν.**
+Τέσσερις ενότητες, καθεμία δεμένη με υπολογισμένο δεδομένο, όχι στατικό
+κείμενο (και οι τέσσερις υλοποιήθηκαν στο Dashboard):
 1. **Ασυμμετρία BATNA** — Το Κόσοβο δεν διαθέτει ανεξάρτητη εναλλακτική· η
    ισχύς του είναι δανεική από τη Δύση. *Οπτικοποίηση:* Power Index breakdown
    ανά component (economic/military/social).
