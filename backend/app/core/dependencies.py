@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -7,14 +7,17 @@ from app.core.security import decode_access_token
 from app.repositories import user as user_repository
 from app.models.user import User, UserRole
 
-# Λέει στο FastAPI "τα tokens έρχονται μέσω του /auth/login endpoint"
-# -- αυτό χρησιμοποιείται κυρίως για να εμφανίζεται σωστά το κουμπί
-# "Authorize" στο Swagger UI
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+# HTTPBearer αντί για OAuth2PasswordBearer -- το δικό μας login (POST
+# /auth/login) είναι απλό JSON body, όχι OAuth2 form grant, οπότε το
+# OAuth2PasswordBearer έκανε το Swagger UI "Authorize" dialog να ζητάει
+# username/password/client_id πεδία που δεν χρησιμοποιούνται ποτέ και δεν
+# δούλευαν όταν συμπληρώνονταν. Το HTTPBearer δίνει ένα απλό πεδίο "Value"
+# όπου επικολλάς το access_token απευθείας.
+bearer_scheme = HTTPBearer()
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
     """
@@ -27,7 +30,7 @@ def get_current_user(
         detail="Could not validate credentials",
     )
 
-    payload = decode_access_token(token)
+    payload = decode_access_token(credentials.credentials)
     if payload is None:
         raise credentials_exception
 
