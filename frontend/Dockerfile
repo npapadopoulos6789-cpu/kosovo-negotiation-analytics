@@ -8,6 +8,14 @@ FROM node:24-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
+# Cache-busting: μερικά build platforms (π.χ. Railway) καίνε cached layers
+# ακόμα και όταν το source άλλαξε -- το COPY . . παρακάτω δείχνει "cached"
+# στα logs αντί να ξαναδιαβάσει τα αρχεία. Το ARG είναι ένα no-op instruction
+# του οποίου η default τιμή αλλάζει χειροκίνητα (νέα τιμή = νέο layer hash),
+# σπάει το cache από αυτό το σημείο και μετά. Άλλαξε την τιμή σε νέο
+# timestamp/τυχαίο string κάθε φορά που χρειάζεσαι πραγματικό, guaranteed
+# fresh rebuild.
+ARG CACHEBUST=2026-08-26T200802Z
 COPY . .
 RUN npm run build
 
