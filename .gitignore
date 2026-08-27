@@ -17,3 +17,9 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Internal dev-process notes (session logs, AI-agent instructions) -- not
+# part of the evaluated project, kept locally only
+PROJECT_STATUS.md
+PROJECT_PLAN.md
+CLAUDE.md

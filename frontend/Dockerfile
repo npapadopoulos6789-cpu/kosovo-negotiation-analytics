@@ -14,6 +14,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# VITE_API_URL μπαίνει στο bundle ΚΑΤΑ ΤΟ build time (Vite static-replaces
+# import.meta.env.VITE_* -- δεν διαβάζεται ποτέ runtime μέσα στο nginx
+# container). Default = localhost:8000 ώστε το τοπικό
+# "docker compose up --build" να συνεχίσει να δουλεύει χωρίς αλλαγή --
+# σε VPS/production deployment περνιέται ρητά με
+# "--build-arg VITE_API_URL=..." (βλ. README.md).
+ARG VITE_API_URL=http://localhost:8000
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 FROM nginx:alpine

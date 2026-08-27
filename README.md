@@ -192,7 +192,26 @@ values (`DATABASE_URL`, `JWT_SECRET_KEY`, `ANTHROPIC_API_KEY`; see
 `app/core/config.py` for the full list). `ADMIN_EMAIL`/`ADMIN_PASSWORD`
 can stay blank locally -- the seed script falls back to a dev-only default
 admin account with a warning, but I set them explicitly on the production
-deployment (Railway) so the real site doesn't run on default credentials.
+deployment so the real site doesn't run on default credentials.
+
+### Deploying to a VPS
+
+```bash
+docker compose build --build-arg VITE_API_URL=http://<public-ip-or-domain>:8000
+docker compose up -d
+```
+
+The frontend is a static build served by nginx (see `frontend/nginx.conf`)
+-- the backend URL it calls gets baked into the JS bundle at build time
+(`VITE_API_URL`), not read at runtime, so `--build-arg` has to point at
+wherever the API is actually reachable from a visitor's browser (the VPS's
+public IP or domain, port 8000), never `localhost`. Everything else is the
+same as the Docker Compose section above (`.env`, migrations/seed run
+automatically on first startup). I run this directly on a plain VPS with
+`docker-compose.yml` -- no PaaS-specific config needed. I tried Railway
+first and hit persistent build-cache issues that a handful of fixes didn't
+resolve; a VPS running Docker Compose directly sidesteps that class of
+problem entirely.
 
 ### Manually (without Docker, for development)
 
@@ -243,14 +262,3 @@ documents, each written for a different purpose:
   considered and rejected (IISS, SIPRI arms transfers, CINC, Correlates of
   War, CIA World Factbook, and others). Read this to verify a specific
   figure.
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) -- a detailed, session-by-session
-  development log, in Greek, written for my own reference while building
-  this with an AI coding assistant. Not necessary reading for evaluating the
-  project.
-- [PROJECT_PLAN.md](PROJECT_PLAN.md) -- the original roadmap, at a
-  milestone level, in Greek. Mostly historical at this point -- kept for
-  context on how the project was originally scoped.
-- [CLAUDE.md](CLAUDE.md) -- the instructions file I wrote for the AI coding
-  agent: architecture rules, conventions, business rules, what not to do.
-  In Greek. Documents how I structured the human-AI collaboration on this
-  project, not something you need to read to evaluate the platform itself.
