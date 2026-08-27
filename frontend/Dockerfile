@@ -15,7 +15,7 @@ RUN npm ci
 # σπάει το cache από αυτό το σημείο και μετά. Άλλαξε την τιμή σε νέο
 # timestamp/τυχαίο string κάθε φορά που χρειάζεσαι πραγματικό, guaranteed
 # fresh rebuild.
-ARG CACHEBUST=2026-08-26T200802Z
+ARG CACHEBUST=2026-08-27T071442Z
 COPY . .
 RUN npm run build
 
