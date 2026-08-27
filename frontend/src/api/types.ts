@@ -193,3 +193,35 @@ export interface WindowScoreResult {
   year: number;
   window_score: number;
 }
+
+// ---------- Auth ----------
+
+export type UserRole = "ADMIN" | "VIEWER";
+
+// Αντιστοιχεί στο UserRead (backend/app/schemas/user.py) -- ΔΕΝ έχει
+// hashed_password, το backend δεν το επιστρέφει ποτέ
+export interface User {
+  id: number;
+  email: string;
+  role: UserRole;
+}
+
+// Αντιστοιχεί στο UserCreate -- role optional, το backend βάζει VIEWER
+// default αν λείπει
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  role?: UserRole;
+}
+
+// Αντιστοιχεί στο UserLogin
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+// Αντιστοιχεί στο Token
+export interface AuthToken {
+  access_token: string;
+  token_type: string;
+}

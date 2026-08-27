@@ -7,6 +7,8 @@ import { EventsListPage } from "./pages/EventsListPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
 import { SynthesisPage } from "./pages/SynthesisPage";
 import { ComparePage } from "./pages/ComparePage";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
 
 function App() {
   return (
@@ -19,6 +21,10 @@ function App() {
         <Route path="events/:id" element={<EventDetailPage />} />
         <Route path="synthesis" element={<SynthesisPage />} />
         <Route path="compare" element={<ComparePage />} />
+        {/* Public routes, ΟΧΙ protected -- βλ. σχόλιο στο AuthProvider.
+            Ίδιο Layout (navbar) με όλα τα άλλα, κανένα guard γύρω τους. */}
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
       </Route>
     </Routes>
   );

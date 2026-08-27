@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 import "./layout.css";
 
 // "Actors" (όχι "Countries") στο navbar -- ρητή UI-labeling απόφαση, βλ.
@@ -13,6 +14,14 @@ const NAV_LINKS = [
 ];
 
 export function Layout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate("/");
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -31,6 +40,38 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
+        {/* Auth links δεν φράζουν τίποτα -- μόνο δείχνουν login/register
+            όταν δεν υπάρχει συνδεδεμένος χρήστης, ή email + logout όταν
+            υπάρχει. Καμία από τις παραπάνω σελίδες δεν ελέγχει το user. */}
+        <div className="app-auth">
+          {user ? (
+            <>
+              <span className="app-auth__email">{user.email}</span>
+              <button type="button" className="app-auth__logout" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <NavLink
+                to="/login"
+                className={({ isActive }) =>
+                  isActive ? "app-nav__link app-nav__link--active" : "app-nav__link"
+                }
+              >
+                Login
+              </NavLink>
+              <NavLink
+                to="/register"
+                className={({ isActive }) =>
+                  isActive ? "app-nav__link app-nav__link--active" : "app-nav__link"
+                }
+              >
+                Register
+              </NavLink>
+            </>
+          )}
+        </div>
       </header>
       <main className="app-main">
         <Outlet />

@@ -8,6 +8,8 @@
 // ΑΚΡΙΒΕΣ path string όπως ορίζεται στο αντίστοιχο backend router -- κανένα
 // hardcode-άρισμα εδώ.
 
+import { getStoredToken } from "../auth/tokenStorage";
+
 // VITE_API_URL: production backend origin (Railway κ.λπ.), set στο build
 // environment. Fallback σε localhost:8000 όταν λείπει, ώστε το τοπικό dev
 // να συνεχίσει να δουλεύει χωρίς καμία αλλαγή.
@@ -25,10 +27,18 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  // Επισυνάπτουμε το token (αν υπάρχει συνδεδεμένος χρήστης) σε ΚΑΘΕ
+  // request -- σήμερα κανένα από τα υπάρχοντα endpoints δεν το απαιτεί
+  // (βλ. σχόλιο στο AuthProvider), αλλά τα λίγα που ΘΑ το χρειαστούν
+  // (π.χ. verify indicator μέσω PUT /indicators/{id}) δουλεύουν ήδη χωρίς
+  // αλλαγή σε κάθε resource module.
+  const token = getStoredToken();
+
   const response = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
