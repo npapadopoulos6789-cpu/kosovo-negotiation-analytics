@@ -41,6 +41,10 @@
   background: var(--color-accent-bg);
   color: var(--color-accent);
   white-space: nowrap;
+  /* opt-out of index.css's global button min-height/border -- badges used
+     as clickable chips (Glossary) stay compact, not full touch-target size */
+  min-height: 0;
+  border: none;
 }
 
 .badge--positive { background: var(--tone-positive-bg); color: var(--tone-positive-text); font-weight: 700; }

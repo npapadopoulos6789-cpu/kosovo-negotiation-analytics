@@ -13,3 +13,40 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Touch-target baseline (WCAG 2.5.5 / iOS-Android convention: ~44px) --
+   χωρίς αυτό, buttons/inputs κληρονομούν browser-default sizing, που είναι
+   δύσκολο να πατηθεί με δάχτυλο σε τηλέφωνο. font-size 1rem στα text
+   inputs αποτρέπει επίσης το auto-zoom-in που κάνει το iOS Safari όταν ένα
+   input έχει font-size <16px. Το .badge (ui.css) κάνει explicit opt-out
+   από το min-height -- παραμένει compact chip, όχι full-size button. */
+button,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+  font: inherit;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+button,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #d7dbe0;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

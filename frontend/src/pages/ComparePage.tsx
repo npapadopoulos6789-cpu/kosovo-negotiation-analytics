@@ -45,10 +45,19 @@ export function ComparePage() {
         onSubmit={handleSubmit}
         style={{ display: "flex", gap: "0.75rem", alignItems: "flex-end", flexWrap: "wrap" }}
       >
-        <label>
+        {/* minWidth: 0 -- χωρίς αυτό, ένα <select> με μακριούς τίτλους events
+            σαν options αρνείται να συρρικνωθεί κάτω από το intrinsic content
+            width του μέσα σε flex container (browser default min-width:auto
+            σε flex items), προκαλώντας οριζόντιο overflow σε στενές οθόνες
+            παρόλο που flexWrap είναι ήδη ενεργό. */}
+        <label style={{ flex: "1 1 200px", minWidth: 0 }}>
           Event A
           <br />
-          <select value={eventAId} onChange={(e) => setEventAId(e.target.value)}>
+          <select
+            value={eventAId}
+            onChange={(e) => setEventAId(e.target.value)}
+            style={{ width: "100%" }}
+          >
             <option value="">Select…</option>
             {sorted.map((ev) => (
               <option key={ev.id} value={ev.id}>
@@ -57,10 +66,14 @@ export function ComparePage() {
             ))}
           </select>
         </label>
-        <label>
+        <label style={{ flex: "1 1 200px", minWidth: 0 }}>
           Event B
           <br />
-          <select value={eventBId} onChange={(e) => setEventBId(e.target.value)}>
+          <select
+            value={eventBId}
+            onChange={(e) => setEventBId(e.target.value)}
+            style={{ width: "100%" }}
+          >
             <option value="">Select…</option>
             {sorted.map((ev) => (
               <option key={ev.id} value={ev.id}>

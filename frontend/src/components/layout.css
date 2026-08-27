@@ -13,6 +13,29 @@
   border-bottom: 1px solid var(--color-border, #d7dbe0);
 }
 
+/* Hidden on desktop -- shown only under the collapse breakpoint below. */
+.app-nav-toggle {
+  display: none;
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--color-border, #d7dbe0);
+  border-radius: var(--radius, 6px);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--color-text, #1a2130);
+  cursor: pointer;
+}
+
+/* Desktop: nav + auth section share the header row (unchanged from before). */
+.app-header-collapsible {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+}
+
 .app-auth {
   display: flex;
   align-items: center;
@@ -72,4 +95,65 @@
   max-width: 960px;
   margin: 0 auto;
   padding: 1.5rem;
+}
+
+/* Τίτλος + 5 nav links + auth section δεν χωράνε πλάι-πλάι κάτω από αυτό
+   το πλάτος (μετρημένο εμπειρικά -- ο τίτλος μόνος του είναι ~230px) --
+   collapse σε hamburger dropdown αντί να ξεχειλίσει οριζόντια. */
+@media (max-width: 860px) {
+  .app-header {
+    flex-wrap: wrap;
+  }
+
+  .app-nav-toggle {
+    display: block;
+  }
+
+  .app-header-collapsible {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+    order: 3;
+  }
+
+  .app-header-collapsible--open {
+    display: flex;
+  }
+
+  .app-nav {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .app-nav__link {
+    padding: 0.85rem 0.25rem;
+    border-bottom: 1px solid var(--color-border, #d7dbe0);
+  }
+
+  .app-auth {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    margin-left: 0;
+  }
+
+  .app-auth__email {
+    padding: 0.85rem 0.25rem;
+  }
+
+  .app-auth__logout {
+    margin: 0.5rem 0 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-main {
+    padding: 1rem;
+  }
+
+  .app-header {
+    padding: 0.75rem 1rem;
+  }
 }
