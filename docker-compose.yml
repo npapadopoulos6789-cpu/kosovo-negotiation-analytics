@@ -62,8 +62,12 @@ services:
     build: ./frontend
     depends_on:
       - api
+    # Host port 3000 -> container port 80: το container τρέχει πλέον
+    # nginx (βλ. frontend/Dockerfile), που ακούει στο default port 80,
+    # όχι πια "vite preview" στο 3000. Το host-side port μένει 3000 ώστε
+    # η τοπική συνήθεια (localhost:3000) να μη χρειάζεται να αλλάξει.
     ports:
-      - "3000:3000"
+      - "3000:80"
     # ΣΗΜΕΙΩΣΗ: το frontend/src/api/client.ts έχει ήδη hardcoded
     # BASE_URL="http://localhost:8000" -- αυτό είναι ΣΩΣΤΟ όπως είναι,
     # όχι κάτι για αλλαγή. Το React code τρέχει μέσα στον browser του
