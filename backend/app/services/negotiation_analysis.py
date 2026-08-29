@@ -272,10 +272,16 @@ def _translate_json_to_greek(raw_json_text: str) -> str:
 
 
 def _build_compare_message(context: dict) -> str:
-    # Δεν υπάρχει free-text ερώτηση χρήστη στο compare -- μόνο τα δύο events
+    # Δεν υπάρχει free-text ερώτηση χρήστη στο compare -- μόνο τα δύο events.
+    # ΠΡΑΓΜΑΤΙΚΟΙ τίτλοι εδώ (ΟΧΙ "event_a"/"event_b") -- αυτή είναι η ΠΡΩΤΗ
+    # γραμμή που βλέπει το μοντέλο, πριν καν το JSON context. Το "event_a"/
+    # "event_b" παραμένουν ως keys ΜΕΣΑ στο JSON (βλ. _build_compare_context)
+    # μόνο για δομή -- το SHARED_PREAMBLE (llm_prompts.py) απαγορεύει ρητά
+    # να τα επαναλάβει το μοντέλο στην απάντηση.
+    title_a = context["event_a"]["event"]["title"]
+    title_b = context["event_b"]["event"]["title"]
     return (
-        f"ΣΥΓΚΡΙΣΗ EVENTS: event_a (id={context['event_a']['event']['id']}) vs "
-        f"event_b (id={context['event_b']['event']['id']})\n\n"
+        f'ΣΥΓΚΡΙΣΗ EVENTS: "{title_a}" vs "{title_b}"\n\n'
         f"CONTEXT (JSON):\n{json.dumps(context, ensure_ascii=False, indent=2)}"
     )
 

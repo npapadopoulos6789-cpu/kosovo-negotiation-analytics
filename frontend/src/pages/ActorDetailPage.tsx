@@ -58,8 +58,8 @@ export function ActorDetailPage() {
 
       <h2 style={{ marginTop: "1.5rem" }}>Indicators</h2>
       <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
-        Only Serbia and Kosovo carry Power Index indicators (see CLAUDE.md) -- other actors
-        typically have none here.
+        Only Serbia and Kosovo carry Power Index indicators -- they're the two negotiating
+        parties the Power Index is scoped to, other actors typically have none here.
       </p>
       {indicators.isLoading && <LoadingState label="Loading indicators…" />}
       {indicators.error && <ErrorState error={indicators.error} />}

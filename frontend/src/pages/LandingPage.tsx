@@ -1,19 +1,21 @@
 import { Link } from "react-router-dom";
 import { Card } from "../components/ui";
 
-// Νέα αρχική σελίδα ("/") -- πριν ήταν το Dashboard εδώ, μετακόμισε σε
-// "/dashboard" (βλ. App.tsx/Layout.tsx). Σκοπός: εξηγεί ΤΙ είναι η
-// πλατφόρμα πριν δείξει δεδομένα -- condensed version του "About this
-// project"/"What it does" του README.md, όχι αντιγραφή 1:1.
+// Αρχική σελίδα ("/"). Το Dashboard ("/dashboard") έχει ΠΙΑ μόνο charts --
+// όλο το αφηγηματικό/εισαγωγικό κείμενο (intro, thesis statement) ΜΕΤΑΚΟΜΙΣΕ
+// εδώ (ΟΧΙ αντιγράφηκε) από το DashboardPage, ώστε τα δύο να έχουν σαφή,
+// ξεχωριστό ρόλο: εδώ εξηγούμε ΤΙ/ΓΙΑΤΙ, εκεί δείχνουμε τα δεδομένα.
 export function LandingPage() {
   return (
     <div>
       <h1 style={{ fontSize: "2rem" }}>Kosovo Negotiation Analytics</h1>
       <p style={{ fontSize: "1.05rem", maxWidth: "640px" }}>
-        A research platform on the Serbia-Kosovo negotiations (1989-2023) -- real historical,
-        economic, military, and social data, paired with a deterministic Power Index/Window Score
-        and LLM-assisted interpretation grounded in negotiation theory (Zartman ripeness,
-        BATNA/ZOPA, red lines).
+        A research platform on the Serbia-Kosovo negotiations (1989-2023): real historical,
+        economic, military, and social data, paired with a deterministic Power Index and Window
+        Score, and read through the qualitative findings of a postgraduate thesis grounded in
+        negotiation theory (Zartman ripeness, BATNA/ZOPA, red lines). The goal throughout is to
+        see when, and why, conditions were -- or weren't -- actually ripe for agreement, not just
+        to assert it.
       </p>
 
       <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", margin: "1.25rem 0 2rem" }}>
@@ -55,6 +57,39 @@ export function LandingPage() {
         AI-generated numbers. An LLM (Claude) is used only afterwards, to connect those numbers to
         negotiation theory -- it never invents data, only interprets what already exists here.
       </p>
+      <p style={{ maxWidth: "640px" }}>
+        Why it matters: deciding whether a negotiation window is genuinely ripe -- not just
+        declared so after the fact, once an agreement has already happened or failed -- is exactly
+        the kind of judgment mediators, policymakers, and analysts have to make in real time,
+        usually without the benefit of hindsight. A qualitative read that can be checked against
+        independent, measurable data is more useful than one that can only be asserted
+        persuasively, however well-argued.
+      </p>
+
+      <div
+        style={{
+          background: "var(--color-accent-bg, #e7eaf0)",
+          borderLeft: "3px solid var(--color-accent, #22314f)",
+          borderRadius: "6px",
+          padding: "1rem 1.25rem",
+          margin: "1.5rem 0",
+          maxWidth: "640px",
+        }}
+      >
+        <strong>The thesis statement</strong>
+        <p style={{ marginTop: "0.5rem" }}>
+          The underlying thesis argues that 2013 -- the year of the Brussels Agreement -- was the
+          most ripe moment in this negotiation record: a rare structural alignment of power
+          symmetry, a mutually declining trend, and comparatively stable domestic conditions. A
+          qualitative argument like that is only as strong as the evidence behind it, though --
+          which is the actual point of this platform. It combines that qualitative reading with
+          independent, deterministic quantitative measures -- the Power Index and Window Score,
+          built from real economic, military, and social data -- to check whether the numbers
+          actually support the theory, not just illustrate it. Explore the Dashboard's charts and
+          the Window Score Sensitivity Explorer there to see how that claim holds up under
+          scrutiny.
+        </p>
+      </div>
 
       <h2 style={{ marginTop: "2rem" }}>Beyond Serbia and Kosovo</h2>
       <p style={{ maxWidth: "640px" }}>
@@ -65,7 +100,8 @@ export function LandingPage() {
         dependence, trade flows, and other dimensions of power aren't covered here yet, but
         nothing about the model rules them out. And it doesn't have to stop at one dispute: the
         same method could connect other major negotiations and regions too, comparing how power
-        dynamics actually played out across different conflicts, not just this one.
+        dynamics actually played out across different conflicts, not just this one. See "Beyond
+        this case study" in the README for the technical version of this same argument.
       </p>
 
       <h2 style={{ marginTop: "2rem" }}>What you can do</h2>

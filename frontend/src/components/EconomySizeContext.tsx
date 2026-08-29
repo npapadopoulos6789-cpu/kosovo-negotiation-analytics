@@ -61,7 +61,7 @@ export function EconomySizeContext() {
       </p>
       <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", marginTop: "0.4rem" }}>
         Context only -- absolute economic size is not part of the Power Index above, which
-        measures relative trend/direction rather than scale (see SEED_SOURCE.md).
+        measures relative trend/direction rather than scale.
       </p>
     </Card>
   );

@@ -15,6 +15,10 @@ import { LoadingState, ErrorState, EmptyState } from "../components/ui";
 // (επιβεβαιωμένα live μέσω του API πριν γραφτούν, όχι εικασία) -- ΟΧΙ
 // περιγραφή του τι μετράει το chart (αυτό παραμένει στην ήδη υπάρχουσα,
 // muted παράγραφο μεθοδολογίας κάτω από κάθε τίτλο).
+//
+// ΣΚΟΠΙΜΑ καμία εισαγωγική/thesis-statement πρόζα εδώ -- μετακόμισε στο
+// LandingPage ("/"), που είναι πλέον η μοναδική σελίδα για το "τι/γιατί".
+// Το Dashboard δείχνει μόνο δεδομένα/charts.
 export function DashboardPage() {
   const { data: events, isLoading, error } = useQuery({
     queryKey: ["negotiation-events"],
@@ -24,49 +28,12 @@ export function DashboardPage() {
   return (
     <div>
       <h1>Dashboard</h1>
-      <p>
-        This platform pairs quantitative power indicators -- Power Index and Window Score,
-        computed from real economic, military, and social data -- with the qualitative findings
-        of a thesis on the Serbia-Kosovo negotiations. Use the charts below to explore
-        interactively when, and why, conditions were (or weren't) ripe for agreement.
-      </p>
-
-      <div
-        style={{
-          background: "var(--color-accent-bg, #e7eaf0)",
-          borderLeft: "3px solid var(--color-accent, #22314f)",
-          borderRadius: "6px",
-          padding: "1rem 1.25rem",
-          margin: "1.25rem 0",
-        }}
-      >
-        <strong>The thesis statement</strong>
-        <p style={{ marginTop: "0.5rem" }}>
-          The underlying thesis argues that 2013 -- the year of the Brussels Agreement -- was the
-          most ripe moment in this negotiation record: a rare structural alignment of power
-          symmetry, a mutually declining trend, and comparatively stable domestic conditions. A
-          qualitative argument like that is only as strong as the evidence behind it, though --
-          which is the actual point of this platform. It combines that qualitative reading with
-          independent, deterministic quantitative measures -- the Power Index and Window Score
-          below, built from real economic, military, and social data -- to check whether the
-          numbers actually support the theory, not just illustrate it. The same combination of
-          qualitative interpretation and quantitative measurement could extend beyond
-          economic/military/social data (energy dependence, trade flows, and other dimensions of
-          power aren't covered here yet) and beyond this one case study, to other negotiations and
-          regions -- see "Beyond this case study" in the README.
-        </p>
-      </div>
-
       <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
         Below are the key concepts used throughout this platform -- click each one to see how
         it's defined and calculated.
       </p>
 
       <Glossary />
-
-      <div style={{ marginTop: "1.5rem" }}>
-        <EconomySizeContext />
-      </div>
 
       <h2 style={{ marginTop: "2.5rem", fontSize: "1.3rem" }}>Setting the stage</h2>
       <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
@@ -112,7 +79,7 @@ export function DashboardPage() {
         year with data (bars, not a line -- these years are sparse, a continuous line would imply
         data in years that don't exist). Note: stacked as raw 0-100 category scores for
         readability -- the stack height is <em>not</em> the Power Index itself, which weights
-        them 40% / 40% / 20% rather than summing them equally (see CLAUDE.md).
+        them 40% / 40% / 20% rather than summing them equally.
       </p>
       <SerbiaPowerTransformationChart />
 
@@ -159,6 +126,10 @@ export function DashboardPage() {
         specific choice of weights?
       </p>
       <WindowScoreSensitivityExplorer />
+
+      <div style={{ marginTop: "2.5rem" }}>
+        <EconomySizeContext />
+      </div>
     </div>
   );
 }

@@ -235,6 +235,15 @@ def test_create_comparison_happy_path(
     # χαμηλότερο όριο, μένει στο γενικό llm_client.MAX_TOKENS.
     assert fake_llm_call[0]["max_tokens"] == analysis_service.llm_client.MAX_TOKENS
     assert len(fake_llm_call) == 1
+    # Regression: το μήνυμα προς το LLM πρέπει να αναφέρει τους ΠΡΑΓΜΑΤΙΚΟΥΣ
+    # τίτλους των events, ΠΟΤΕ "event_a (id=...)"/"event_b (id=...)" -- το
+    # μοντέλο τα επανέλαβε αυτολεξεί στην απάντηση όταν το μήνυμα τα είχε
+    # (πραγματικό production bug, βλ. _build_compare_message).
+    sent_message = fake_llm_call[0]["user_message"]
+    assert "Rambouillet Talks" in sent_message
+    assert "Brussels Agreement" in sent_message
+    assert "event_a (id=" not in sent_message
+    assert "event_b (id=" not in sent_message
 
 
 def test_create_comparison_rejects_identical_events(fake_analysis_repo, fake_event_repo, fake_llm_call):
