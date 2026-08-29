@@ -1,5 +1,5 @@
 import { Suspense, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { LoadingState } from "./ui";
 import "./layout.css";
@@ -7,8 +7,11 @@ import "./layout.css";
 // "Actors" (όχι "Countries") στο navbar -- ρητή UI-labeling απόφαση, βλ.
 // PROJECT_STATUS.md 2026-08-20: το backend model λέγεται Country αλλά
 // καλύπτει και μη-κρατικούς δρώντες (NATO/UN/EU/...).
+//
+// "/" είναι πλέον η νέα LandingPage, ΟΧΙ το Dashboard (βλ. App.tsx) --
+// το Dashboard μετακόμισε σε "/dashboard", ενημερώθηκε εδώ αντίστοιχα.
 const NAV_LINKS = [
-  { to: "/", label: "Dashboard", end: true },
+  { to: "/dashboard", label: "Dashboard" },
   { to: "/actors", label: "Actors" },
   { to: "/events", label: "Events" },
   { to: "/synthesis", label: "Synthesis" },
@@ -41,7 +44,9 @@ export function Layout() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <span className="app-title">Kosovo Negotiation Analytics</span>
+        <Link to="/" className="app-title">
+          Kosovo Negotiation Analytics
+        </Link>
         <button
           type="button"
           className="app-nav-toggle"
@@ -57,11 +62,10 @@ export function Layout() {
           }
         >
           <nav className="app-nav">
-            {NAV_LINKS.map(({ to, label, end }) => (
+            {NAV_LINKS.map(({ to, label }) => (
               <NavLink
                 key={to}
                 to={to}
-                end={end}
                 className={({ isActive }) =>
                   isActive ? "app-nav__link app-nav__link--active" : "app-nav__link"
                 }

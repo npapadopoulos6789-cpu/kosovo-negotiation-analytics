@@ -66,6 +66,8 @@
 .app-title {
   font-weight: 700;
   font-size: 1rem;
+  color: var(--color-text, #1a2130);
+  text-decoration: none;
 }
 
 .app-nav {

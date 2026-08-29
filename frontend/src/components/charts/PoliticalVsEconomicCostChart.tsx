@@ -77,7 +77,7 @@ export function PoliticalVsEconomicCostChart() {
 
   if (countriesLoading || query.isLoading) return <LoadingState label="Loading political/economic cost data…" />;
   if (!serbia || !kosovo) {
-    return <ErrorState error={new Error("Serbia/Kosovo not found among seeded actors.")} />;
+    return <ErrorState error={new Error("Serbia/Kosovo data not available.")} />;
   }
   if (query.error) return <ErrorState error={query.error} />;
 

@@ -12,7 +12,7 @@ export function EventsListPage() {
 
   if (isLoading) return <LoadingState label="Loading events…" />;
   if (error) return <ErrorState error={error} />;
-  if (!events || events.length === 0) return <EmptyState label="No negotiation events seeded yet." />;
+  if (!events || events.length === 0) return <EmptyState label="No negotiation events available yet." />;
 
   const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date));
 

@@ -4,18 +4,21 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { ApiError } from "../api/client";
 import { Card } from "../components/ui";
-import type { UserRole } from "../api/types";
 
 // Δεν είναι protected route. Το backend δεν κάνει auto-login μετά το
 // register (POST /auth/register επιστρέφει UserRead, όχι Token) -- μετά
 // από επιτυχία δείχνουμε μήνυμα και link προς /login, όχι redirect.
+//
+// ΣΚΟΠΙΜΑ καμία επιλογή role εδώ -- κάθε public registration είναι
+// πάντα VIEWER (security fix, βλ. backend UserRegister schema/
+// register_public_user). Η φόρμα δεν πρέπει καν να υπονοεί ότι το role
+// είναι κάτι που διαλέγει ο χρήστης.
 export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("VIEWER");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
@@ -25,7 +28,7 @@ export function RegisterPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await register({ email, password, role });
+      await register({ email, password });
       setIsRegistered(true);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -77,17 +80,6 @@ export function RegisterPage() {
               autoComplete="new-password"
               style={{ padding: "0.5rem", fontFamily: "inherit" }}
             />
-          </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.9rem" }}>
-            Role
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              style={{ padding: "0.5rem", fontFamily: "inherit" }}
-            >
-              <option value="VIEWER">Viewer</option>
-              <option value="ADMIN">Admin</option>
-            </select>
           </label>
           {error && <div className="state-block state-block--error">{error}</div>}
           <button type="submit" disabled={isSubmitting} style={{ alignSelf: "flex-start" }}>

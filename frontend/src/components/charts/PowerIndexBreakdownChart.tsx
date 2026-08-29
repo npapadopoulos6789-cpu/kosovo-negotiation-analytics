@@ -58,7 +58,7 @@ export function PowerIndexBreakdownChart() {
 
   if (countriesLoading) return <LoadingState label="Loading actors…" />;
   if (!serbia || !kosovo) {
-    return <ErrorState error={new Error("Serbia/Kosovo not found among seeded actors.")} />;
+    return <ErrorState error={new Error("Serbia/Kosovo data not available.")} />;
   }
 
   const { serbiaData, kosovoData } = breakdown.data ?? {};

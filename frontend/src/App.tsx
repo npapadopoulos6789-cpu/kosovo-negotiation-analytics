@@ -10,6 +10,7 @@ import { Layout } from "./components/Layout";
 // default export -- το lazy() θέλει module με .default. Το Suspense
 // boundary που δείχνει το loading fallback ζει στο Layout.tsx (γύρω από
 // το <Outlet/>), μία φορά για όλα τα routes.
+const LandingPage = lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
 const DashboardPage = lazy(() =>
   import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
 );
@@ -34,7 +35,8 @@ function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<DashboardPage />} />
+        <Route index element={<LandingPage />} />
+        <Route path="dashboard" element={<DashboardPage />} />
         <Route path="actors" element={<ActorsPage />} />
         <Route path="actors/:id" element={<ActorDetailPage />} />
         <Route path="events" element={<EventsListPage />} />

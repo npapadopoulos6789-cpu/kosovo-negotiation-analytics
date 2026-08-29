@@ -206,12 +206,13 @@ export interface User {
   role: UserRole;
 }
 
-// Αντιστοιχεί στο UserCreate -- role optional, το backend βάζει VIEWER
-// default αν λείπει
+// Αντιστοιχεί στο UserRegister (backend/app/schemas/user.py) -- ΣΚΟΠΙΜΑ
+// χωρίς πεδίο role. Public registration είναι ΠΑΝΤΑ VIEWER στο backend
+// (security fix -- ο client δεν μπορεί να επιλέξει role εδώ, ούτε καν
+// να το στείλει σε αυτό το type). ADMIN υπάρχει ΜΟΝΟ μέσω seed script.
 export interface RegisterPayload {
   email: string;
   password: string;
-  role?: UserRole;
 }
 
 // Αντιστοιχεί στο UserLogin

@@ -66,7 +66,7 @@ export function SerbiaPowerTransformationChart() {
   });
 
   if (countryLoading || query.isLoading) return <LoadingState label="Loading Serbia's power index history…" />;
-  if (!serbia) return <ErrorState error={new Error("Serbia not found among seeded actors.")} />;
+  if (!serbia) return <ErrorState error={new Error("Serbia data not available.")} />;
   if (query.error) return <ErrorState error={query.error} />;
 
   const data = query.data ?? [];

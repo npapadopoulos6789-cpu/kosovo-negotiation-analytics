@@ -10,7 +10,7 @@ export function ActorsPage() {
 
   if (isLoading) return <LoadingState label="Loading actors…" />;
   if (error) return <ErrorState error={error} />;
-  if (actors.length === 0) return <EmptyState label="No actors seeded yet." />;
+  if (actors.length === 0) return <EmptyState label="No actors available yet." />;
 
   return (
     <div>

@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.repositories import user as user_repository
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserRegister
 from app.core.security import hash_password, verify_password, create_access_token
 
 
@@ -30,6 +30,21 @@ def register_user(db: Session, data: UserCreate) -> User:
         role=data.role,
     )
     return user_repository.create(db, new_user)
+
+
+def register_public_user(db: Session, data: UserRegister) -> User:
+    """
+    Self-service registration -- ο μοναδικός caller είναι το POST
+    /auth/register. Το role ΕΙΝΑΙ ΠΑΝΤΑ VIEWER, hardcoded εδώ, ΠΟΤΕ από
+    το request body (το UserRegister schema δεν έχει καν πεδίο role,
+    βλ. schemas/user.py). Καμία δημόσια διαδρομή προαγωγής σε ADMIN --
+    ο μοναδικός τρόπος να υπάρξει ADMIN είναι το seed script
+    (ADMIN_EMAIL/ADMIN_PASSWORD) μέσω του register_user παραπάνω.
+    """
+    return register_user(
+        db,
+        UserCreate(email=data.email, password=data.password, role=UserRole.VIEWER),
+    )
 
 
 def authenticate_user(db: Session, email: str, password: str) -> str:

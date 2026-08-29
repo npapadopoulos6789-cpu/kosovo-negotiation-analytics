@@ -2,13 +2,20 @@ import { useMutation } from "@tanstack/react-query";
 import { createSynthesis } from "../api/negotiationAnalyses";
 import { QuestionForm } from "../components/QuestionForm";
 import { LLMAnswerCard } from "../components/LLMAnswerCard";
+import { LoginRequiredNotice } from "../components/LoginRequiredNotice";
 import { ErrorState } from "../components/ui";
+import { useAuth } from "../auth/AuthContext";
 
 // POST /synthesis: LLM ερμηνεία πάνω σε ΟΛΑ τα events + scores μαζί
 // (is_synthesis=true, negotiation_event_id=NULL). Βλ. CLAUDE.md "LLM
 // integration" -- temperature=0, το context είναι πάντα δομημένα δεδομένα
 // του backend, ποτέ ελεύθερη γνώση του μοντέλου.
+//
+// Απαιτεί login (backend: Depends(get_current_user) στο POST /synthesis,
+// ΟΧΙ require_admin -- οποιοσδήποτε συνδεδεμένος χρήστης). Δίνει σαφή
+// σκοπό στο register: δωρεάν λογαριασμός = πρόσβαση σε AI ανάλυση.
 export function SynthesisPage() {
+  const { isAuthenticated } = useAuth();
   const mutation = useMutation({ mutationFn: createSynthesis });
 
   return (
@@ -20,17 +27,23 @@ export function SynthesisPage() {
         scores, optimal periods) -- it never introduces facts or figures of its own.
       </p>
 
-      <QuestionForm
-        onSubmit={(question) => mutation.mutate({ user_question: question })}
-        isSubmitting={mutation.isPending}
-        placeholder="e.g. Which negotiation window offered Kosovo the most leverage, and why?"
-      />
+      {!isAuthenticated ? (
+        <LoginRequiredNotice toolName="Synthesis" />
+      ) : (
+        <>
+          <QuestionForm
+            onSubmit={(question) => mutation.mutate({ user_question: question })}
+            isSubmitting={mutation.isPending}
+            placeholder="e.g. Which negotiation window offered Kosovo the most leverage, and why?"
+          />
 
-      {mutation.isError && <ErrorState error={mutation.error} />}
-      {mutation.isSuccess && (
-        <div style={{ marginTop: "1rem" }}>
-          <LLMAnswerCard analysis={mutation.data} variant="synthesis" />
-        </div>
+          {mutation.isError && <ErrorState error={mutation.error} />}
+          {mutation.isSuccess && (
+            <div style={{ marginTop: "1rem" }}>
+              <LLMAnswerCard analysis={mutation.data} variant="synthesis" />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
