@@ -99,6 +99,13 @@ export function ComparePage() {
               {mutation.isPending ? "Comparing…" : "Compare"}
             </button>
           </form>
+          {/* Χωρίς συγκεκριμένο αριθμό δευτερολέπτων -- ίδιος λόγος με το
+              QuestionForm, βλ. σχόλιο εκεί. */}
+          {mutation.isPending && (
+            <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted, #5b6472)", margin: "0.4rem 0 0" }}>
+              This calls a real AI model, so it can take a little while.
+            </p>
+          )}
           {sameEvent && <p style={{ color: "var(--color-text-muted)" }}>Pick two different events.</p>}
 
           {mutation.isError && <ErrorState error={mutation.error} />}

@@ -70,7 +70,7 @@ export function WindowScoreVsImplementationChart() {
 
   if (countriesLoading || query.isLoading) return <LoadingState label="Loading Window Score vs. implementation data…" />;
   if (!serbia || !kosovo) {
-    return <ErrorState error={new Error("Serbia/Kosovo not found among seeded actors.")} />;
+    return <ErrorState error={new Error("Serbia/Kosovo data not available.")} />;
   }
   if (query.error) return <ErrorState error={query.error} />;
 

@@ -194,6 +194,19 @@ export interface WindowScoreResult {
   window_score: number;
 }
 
+// Αντιστοιχεί στο response του GET /analytics/window-score-breakdown/{year}
+// -- τα 3 components (πριν τα weights 50/30/20) + το τελικό window_score,
+// για το Window Score Sensitivity Explorer (DashboardPage): φέρνουμε αυτό
+// ΜΙΑ φορά ανά έτος, μετά ο χρήστης ξαναϋπολογίζει το σταθμισμένο άθροισμα
+// client-side με τα δικά του weights -- καμία επιπλέον κλήση backend.
+export interface WindowScoreBreakdown {
+  year: number;
+  symmetry_score: number;
+  trend_score: number;
+  social_stability_score: number;
+  window_score: number;
+}
+
 // ---------- Auth ----------
 
 export type UserRole = "ADMIN" | "VIEWER";

@@ -34,6 +34,14 @@ export function QuestionForm({ onSubmit, isSubmitting, placeholder }: QuestionFo
       <button type="submit" disabled={isSubmitting || !question.trim()} style={{ alignSelf: "flex-start" }}>
         {isSubmitting ? "Asking…" : "Ask"}
       </button>
+      {/* Χωρίς συγκεκριμένο αριθμό δευτερολέπτων -- δεν έχουμε ποτέ logged
+          πραγματικό elapsed time (μόνο input/output tokens, βλ.
+          llm_client.py/PROJECT_STATUS.md), άρα δεν μαντεύουμε νούμερο. */}
+      {isSubmitting && (
+        <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted, #5b6472)", margin: 0 }}>
+          This calls a real AI model, so it can take a little while.
+        </p>
+      )}
     </form>
   );
 }

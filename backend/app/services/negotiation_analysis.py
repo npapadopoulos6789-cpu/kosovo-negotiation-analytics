@@ -14,6 +14,20 @@ from app.services import analytics as analytics_service
 from app.services import llm_client
 from app.services.llm_prompts import SYSTEM_PROMPT_QA, SYSTEM_PROMPT_SYNTHESIS, SYSTEM_PROMPT_COMPARE
 
+# Per-event Q&A ΜΟΝΟ (όχι synthesis/compare/translation) παίρνει χαμηλότερο
+# max_tokens από το γενικό llm_client.MAX_TOKENS=8192 -- βάσει πραγματικού
+# logged call: output_tokens=1540 (~19% του 8192, βλ. PROJECT_STATUS.md),
+# άνετο περιθώριο. Δομικά επίσης το πιο μικρό context (ένα event) έναντι
+# του synthesis (10 events + timeline). 4096 = ~2.7x το observed output --
+# συντηρητικό, όχι κοντά στο όριο.
+#
+# Synthesis/Compare ΔΕΝ πειράζονται εδώ: το synthesis έχει ήδη
+# πραγματικό ιστορικό να κόβεται στη μέση στο 2048 tokens (γι' αυτό
+# ανέβηκε αρχικά σε 8192, βλ. PROJECT_STATUS.md) -- καμία σαφής ένδειξη
+# ότι θα ήταν ασφαλές να κατέβει. Το compare δεν έχει καθόλου logged
+# output_tokens data -- δεν αξίζει το ρίσκο να μαντέψουμε.
+QA_MAX_TOKENS = 4096
+
 
 class NegotiationAnalysisNotFoundError(Exception):
     def __init__(self, analysis_id: int):
@@ -276,18 +290,20 @@ def create_analysis(db: Session, data: NegotiationAnalysisCreate) -> Negotiation
     if is_synthesis:
         context = _build_synthesis_context(db)
         system_prompt = SYSTEM_PROMPT_SYNTHESIS
+        max_tokens = llm_client.MAX_TOKENS
     else:
         event = event_repository.get_by_id(db, data.negotiation_event_id)
         if event is None:
             raise EventForAnalysisNotFoundError(data.negotiation_event_id)
         context = _build_event_context(db, event)
         system_prompt = SYSTEM_PROMPT_QA
+        max_tokens = QA_MAX_TOKENS
 
     user_message = _build_user_message(data.user_question, context)
 
     # Αν αυτό σηκώσει LLMCallError, ΔΕΝ φτάνουμε ποτέ στο analysis_repository.create --
     # άρα δεν αποθηκεύεται ποτέ μισή/άκυρη εγγραφή (βλ. main.py exception handler).
-    result = llm_client.call_llm(system_prompt, user_message)
+    result = llm_client.call_llm(system_prompt, user_message, max_tokens=max_tokens)
     raw_text = result["raw_text"]
 
     # Ξεχωριστό μεταφραστικό call αν η ερώτηση είναι στα ελληνικά -- βλ.

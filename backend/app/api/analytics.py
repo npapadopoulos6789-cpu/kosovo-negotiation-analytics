@@ -51,6 +51,30 @@ def get_window_score(
     return {"year": year, "window_score": result}
 
 
+@router.get("/window-score-breakdown/{year}")
+def get_window_score_breakdown(
+    year: int,
+    serbia_id: int,
+    kosovo_id: int,
+    previous_year: int | None = None,
+    db: Session = Depends(get_db),
+):
+    # Ίδιο previous_year auto-detect όπως το /window-score/{year} παραπάνω
+    # -- ρητά διπλασιασμένο εδώ, όχι εξαγωγή σε shared helper, ώστε τα δύο
+    # endpoints να μένουν ανεξάρτητα (ίδια σύμβαση με power-index vs
+    # power-index-breakdown).
+    if previous_year is None and year in analytics_service.KEY_YEARS:
+        previous_year = analytics_service._most_recent_year_with_data(
+            db, serbia_id, kosovo_id, year
+        )
+    result = analytics_service.calculate_window_score_breakdown(
+        db, serbia_id, kosovo_id, year, previous_year
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="Insufficient data")
+    return {"year": year, **result}
+
+
 @router.get("/optimal-agreement-period/{country_id}")
 def get_optimal_agreement_period(country_id: int, db: Session = Depends(get_db)):
     result = analytics_service.find_optimal_agreement_period(db, country_id)

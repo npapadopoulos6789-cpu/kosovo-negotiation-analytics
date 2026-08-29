@@ -124,8 +124,8 @@ def fake_llm_call(monkeypatch):
     ώστε τα tests να επιβεβαιώνουν πόσες φορές (και αν) κλήθηκε."""
     calls = []
 
-    def fake_call(system_prompt, user_message):
-        calls.append({"system_prompt": system_prompt, "user_message": user_message})
+    def fake_call(system_prompt, user_message, max_tokens=8192):
+        calls.append({"system_prompt": system_prompt, "user_message": user_message, "max_tokens": max_tokens})
         return {"raw_text": FAKE_LLM_RAW_TEXT, "model": "fake-model"}
 
     monkeypatch.setattr(analysis_service.llm_client, "call_llm", fake_call)
@@ -145,6 +145,9 @@ def test_create_synthesis_analysis_when_no_event_id(
     assert created.llm_answer == FAKE_LLM_RAW_TEXT
     assert created.model_used == "fake-model"
     assert len(fake_llm_call) == 1
+    # Synthesis ΔΕΝ πειράζεται -- πρέπει να μείνει στο γενικό
+    # llm_client.MAX_TOKENS (8192), βλ. σχόλιο πάνω από QA_MAX_TOKENS.
+    assert fake_llm_call[0]["max_tokens"] == analysis_service.llm_client.MAX_TOKENS
 
 
 def test_create_event_specific_analysis(
@@ -159,6 +162,9 @@ def test_create_event_specific_analysis(
     assert created.negotiation_event_id == 1
     assert created.llm_answer == FAKE_LLM_RAW_TEXT
     assert len(fake_llm_call) == 1
+    # Per-event Q&A χρησιμοποιεί το χαμηλότερο QA_MAX_TOKENS -- βασισμένο
+    # σε πραγματικό logged output (1540 tokens), βλ. σχόλιο στο service.
+    assert fake_llm_call[0]["max_tokens"] == analysis_service.QA_MAX_TOKENS
 
 
 def test_create_analysis_rejects_missing_event(fake_analysis_repo, fake_event_repo, fake_llm_call):
@@ -174,7 +180,7 @@ def test_create_analysis_rejects_missing_event(fake_analysis_repo, fake_event_re
 def test_create_analysis_does_not_save_when_llm_call_fails(
     fake_analysis_repo, fake_event_repo, fake_context_dependencies, monkeypatch
 ):
-    def failing_call(system_prompt, user_message):
+    def failing_call(system_prompt, user_message, max_tokens=8192):
         raise LLMCallError("boom")
 
     monkeypatch.setattr(analysis_service.llm_client, "call_llm", failing_call)
@@ -225,6 +231,9 @@ def test_create_comparison_happy_path(
     assert "2" in created.user_question
     assert "7" in created.user_question
     assert created.llm_answer == FAKE_LLM_RAW_TEXT
+    # Compare ΔΕΝ πειράζεται -- καμία logged data να δικαιολογήσει
+    # χαμηλότερο όριο, μένει στο γενικό llm_client.MAX_TOKENS.
+    assert fake_llm_call[0]["max_tokens"] == analysis_service.llm_client.MAX_TOKENS
     assert len(fake_llm_call) == 1
 
 

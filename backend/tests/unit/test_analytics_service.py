@@ -235,6 +235,50 @@ def test_calculate_window_score_returns_none_if_gap_missing(monkeypatch):
     assert result is None
 
 
+def test_calculate_window_score_breakdown_returns_all_components(monkeypatch):
+    monkeypatch.setattr(analytics_service, "calculate_power_gap", lambda db, s, k, y: 20.0)
+    monkeypatch.setattr(
+        analytics_service, "calculate_social_stability_score", lambda db, s, k, y: 60.0
+    )
+
+    result = analytics_service.calculate_window_score_breakdown(
+        db=None, serbia_id=1, kosovo_id=2, year=2013, previous_year=None
+    )
+
+    # symmetry=100-20=80, trend=0.0 (κανένα previous_year), social=60.0,
+    # window_score=80*0.5+0*0.3+60*0.2=52.0 -- ίδιο μαθηματικό αποτέλεσμα
+    # με το ήδη υπάρχον test_calculate_window_score_without_previous_year.
+    assert result == {
+        "symmetry_score": 80.0,
+        "trend_score": 0.0,
+        "social_stability_score": 60.0,
+        "window_score": 52.0,
+    }
+
+
+def test_calculate_window_score_breakdown_returns_none_if_gap_missing(monkeypatch):
+    monkeypatch.setattr(analytics_service, "calculate_power_gap", lambda db, s, k, y: None)
+
+    result = analytics_service.calculate_window_score_breakdown(
+        db=None, serbia_id=1, kosovo_id=2, year=2013
+    )
+
+    assert result is None
+
+
+def test_calculate_window_score_breakdown_returns_none_if_social_missing(monkeypatch):
+    monkeypatch.setattr(analytics_service, "calculate_power_gap", lambda db, s, k, y: 20.0)
+    monkeypatch.setattr(
+        analytics_service, "calculate_social_stability_score", lambda db, s, k, y: None
+    )
+
+    result = analytics_service.calculate_window_score_breakdown(
+        db=None, serbia_id=1, kosovo_id=2, year=2013
+    )
+
+    assert result is None
+
+
 def test_find_optimal_agreement_period_returns_best_year(monkeypatch):
     def fake_power_index(db, country_id, year):
         scores = {1999: 68.5, 2005: 55.0, 2013: 41.2, 2023: 50.0}

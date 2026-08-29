@@ -56,6 +56,18 @@ export function LandingPage() {
         negotiation theory -- it never invents data, only interprets what already exists here.
       </p>
 
+      <h2 style={{ marginTop: "2rem" }}>Beyond Serbia and Kosovo</h2>
+      <p style={{ maxWidth: "640px" }}>
+        The real idea behind this platform isn't Serbia and Kosovo specifically -- it's a way of
+        thinking: pair a qualitative reading of a negotiation with independent, measurable data,
+        and check whether the two actually agree, instead of taking either on faith. That same
+        approach could reach further than economic, military, and social data -- energy
+        dependence, trade flows, and other dimensions of power aren't covered here yet, but
+        nothing about the model rules them out. And it doesn't have to stop at one dispute: the
+        same method could connect other major negotiations and regions too, comparing how power
+        dynamics actually played out across different conflicts, not just this one.
+      </p>
+
       <h2 style={{ marginTop: "2rem" }}>What you can do</h2>
       <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
         <Card>

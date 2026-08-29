@@ -12,7 +12,7 @@
 // ΟΧΙ σφάλμα· ο caller πρέπει να το χειριστεί ως EmptyState, όχι ErrorState.
 
 import { apiRequest } from "./client";
-import type { PowerIndexBreakdown, WindowScoreResult } from "./types";
+import type { PowerIndexBreakdown, WindowScoreResult, WindowScoreBreakdown } from "./types";
 
 export function getPowerIndexBreakdown(
   countryId: number,
@@ -39,4 +39,21 @@ export function getWindowScore(
     params.set("previous_year", String(previousYear));
   }
   return apiRequest<WindowScoreResult>(`/analytics/window-score/${year}?${params}`);
+}
+
+// Ίδιο previousYear-optional convention με το getWindowScore παραπάνω.
+export function getWindowScoreBreakdown(
+  year: number,
+  serbiaId: number,
+  kosovoId: number,
+  previousYear?: number,
+): Promise<WindowScoreBreakdown> {
+  const params = new URLSearchParams({
+    serbia_id: String(serbiaId),
+    kosovo_id: String(kosovoId),
+  });
+  if (previousYear !== undefined) {
+    params.set("previous_year", String(previousYear));
+  }
+  return apiRequest<WindowScoreBreakdown>(`/analytics/window-score-breakdown/${year}?${params}`);
 }

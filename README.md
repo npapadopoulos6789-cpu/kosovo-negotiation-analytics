@@ -51,7 +51,22 @@ add the new actors (POST /countries), their quantitative data (POST
 /indicators), and my own qualitative coding of events (POST
 /negotiation-events). The Power Index and Window Score would compute
 automatically, no code changes needed, since they operate generically on
-country_id rather than being hardcoded to Serbia/Kosovo.
+country_id rather than being hardcoded to Serbia/Kosovo. Multiple case
+studies could coexist in the same database side by side -- Country/Indicator/
+NegotiationEvent rows aren't scoped to a single dispute -- which is what
+would make a genuinely comparative reading possible: not just "was this one
+negotiation ripe," but how power dynamics actually differ across separate
+geopolitical conflicts, evaluated with the same deterministic method each
+time instead of a fresh, case-specific rubric.
+
+The `Indicator.category` enum (`ECONOMIC` / `MILITARY` / `SOCIAL_UNREST`) is
+also not the last word on what "power" means here -- it's what this specific
+thesis measured. Energy dependence, trade-flow concentration, or other
+dimensions of leverage aren't covered today, but nothing about the Power
+Index formula (weighted category scores, see Methodology) requires it to stay
+at exactly three categories -- extending it is a matter of deciding the
+weights and normalization ranges for a new category, not a structural
+rewrite.
 
 Two things wouldn't generalize automatically today, though, and I want to be
 upfront about that:

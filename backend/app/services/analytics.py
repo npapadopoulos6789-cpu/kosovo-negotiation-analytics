@@ -229,6 +229,50 @@ def calculate_window_score(
     return round(window_score, 2)
 
 
+def calculate_window_score_breakdown(
+    db: Session,
+    serbia_id: int,
+    kosovo_id: int,
+    year: int,
+    previous_year: int | None = None,
+) -> dict | None:
+    """
+    Ίδιο μοτίβο με calculate_power_index_breakdown -- τα 3 components
+    ΞΕΧΩΡΙΣΤΑ (πριν τα βάρη 50/30/20), μαζί με το τελικό window_score.
+    Χρειάστηκε για το Window Score Sensitivity Explorer του Dashboard: το
+    frontend φέρνει τα components ΜΙΑ φορά ανά έτος, μετά ξαναϋπολογίζει
+    το σταθμισμένο άθροισμα ΤΟΠΙΚΑ (client-side) με τα weights του χρήστη
+    από τα sliders -- όχι νέο backend call σε κάθε μετακίνηση slider.
+    """
+    gap = calculate_power_gap(db, serbia_id, kosovo_id, year)
+    if gap is None:
+        return None
+    symmetry_score = round(100 - gap, 2)
+
+    trend_score = 0.0
+    if previous_year is not None:
+        current_serbia = calculate_power_index(db, serbia_id, year)
+        previous_serbia = calculate_power_index(db, serbia_id, previous_year)
+        current_kosovo = calculate_power_index(db, kosovo_id, year)
+        previous_kosovo = calculate_power_index(db, kosovo_id, previous_year)
+
+        if None not in (current_serbia, previous_serbia, current_kosovo, previous_kosovo):
+            trend_score = calculate_trend_score(
+                current_serbia, previous_serbia, current_kosovo, previous_kosovo
+            )
+
+    social_stability = calculate_social_stability_score(db, serbia_id, kosovo_id, year)
+    if social_stability is None:
+        return None
+
+    return {
+        "symmetry_score": symmetry_score,
+        "trend_score": trend_score,
+        "social_stability_score": social_stability,
+        "window_score": calculate_window_score(db, serbia_id, kosovo_id, year, previous_year),
+    }
+
+
 KEY_YEARS = [1998, 1999, 2000, 2005, 2007, 2008, 2013, 2018, 2020, 2023]
 
 

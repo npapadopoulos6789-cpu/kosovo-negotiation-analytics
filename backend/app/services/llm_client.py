@@ -37,19 +37,25 @@ def _strip_code_fence(text: str) -> str:
     return stripped.strip()
 
 
-def call_llm(system_prompt: str, user_message: str) -> dict:
+def call_llm(system_prompt: str, user_message: str, max_tokens: int = MAX_TOKENS) -> dict:
     """
     Επιστρέφει {"raw_text": <το ακριβές JSON string, όπως θα αποθηκευτεί
     στο llm_answer>, "model": <το model που όντως απάντησε>}.
     Σηκώνει LLMCallError αν κάτι πάει στραβά -- ΔΕΝ γυρνάει ποτέ μερικό
     ή άκυρο αποτέλεσμα.
+
+    max_tokens: default MAX_TOKENS=8192 (το γενικό, συντηρητικό όριο, ίδιο
+    με πριν). Ο caller (negotiation_analysis.py) περνάει χαμηλότερη τιμή
+    ΜΟΝΟ όπου υπάρχει πραγματικό logged evidence ότι το flow χρειάζεται
+    λιγότερα -- βλ. σχόλιο εκεί. Καμία γνώση για ΠΟΙΟ flow καλεί εδώ, το
+    llm_client παραμένει thin/domain-agnostic.
     """
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     try:
         response = client.messages.create(
             model=MODEL,
-            max_tokens=MAX_TOKENS,
+            max_tokens=max_tokens,
             temperature=0,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}],
@@ -68,7 +74,7 @@ def call_llm(system_prompt: str, user_message: str) -> dict:
     # το MAX_TOKENS=8192 είναι άνετο ή οριακό, χωρίς migration/νέο πεδίο.
     print(
         f"[llm_client] tokens -- input: {response.usage.input_tokens}, "
-        f"output: {response.usage.output_tokens} (max_tokens={MAX_TOKENS})"
+        f"output: {response.usage.output_tokens} (max_tokens={max_tokens})"
     )
 
     return {

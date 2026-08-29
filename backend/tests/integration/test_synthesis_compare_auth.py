@@ -11,7 +11,7 @@ FAKE_LLM_RAW_TEXT = '{"answer": "fake", "answer_certainty": "HIGH", "data_gaps_n
 def _mock_llm(monkeypatch):
     # Ίδιο μοτίβο με tests/unit/test_negotiation_analysis_service.py --
     # ΚΑΝΕΝΑ πραγματικό Anthropic API call μέσα από pytest.
-    def fake_call(system_prompt, user_message):
+    def fake_call(system_prompt, user_message, max_tokens=8192):
         return {"raw_text": FAKE_LLM_RAW_TEXT, "model": "fake-model"}
 
     monkeypatch.setattr(analysis_service.llm_client, "call_llm", fake_call)
