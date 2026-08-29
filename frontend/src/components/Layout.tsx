@@ -12,6 +12,7 @@ import "./layout.css";
 // το Dashboard μετακόμισε σε "/dashboard", ενημερώθηκε εδώ αντίστοιχα.
 const NAV_LINKS = [
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/methodology", label: "How it works" },
   { to: "/actors", label: "Actors" },
   { to: "/events", label: "Events" },
   { to: "/synthesis", label: "Synthesis" },

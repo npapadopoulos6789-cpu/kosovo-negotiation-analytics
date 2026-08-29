@@ -14,6 +14,9 @@ const LandingPage = lazy(() => import("./pages/LandingPage").then((m) => ({ defa
 const DashboardPage = lazy(() =>
   import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
 );
+const MethodologyPage = lazy(() =>
+  import("./pages/MethodologyPage").then((m) => ({ default: m.MethodologyPage })),
+);
 const ActorsPage = lazy(() => import("./pages/ActorsPage").then((m) => ({ default: m.ActorsPage })));
 const ActorDetailPage = lazy(() =>
   import("./pages/ActorDetailPage").then((m) => ({ default: m.ActorDetailPage })),
@@ -37,6 +40,7 @@ function App() {
       <Route element={<Layout />}>
         <Route index element={<LandingPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="methodology" element={<MethodologyPage />} />
         <Route path="actors" element={<ActorsPage />} />
         <Route path="actors/:id" element={<ActorDetailPage />} />
         <Route path="events" element={<EventsListPage />} />

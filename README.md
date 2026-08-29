@@ -79,6 +79,11 @@ upfront about that:
 
 ## What it does
 
+- **Landing page** -- explains the research question, the thesis's central
+  claim, and what's free vs. what needs an account, before showing any data
+- **How it works** (`/methodology`) -- an accessible, in-app version of the
+  Methodology section below: what the Power Index/Window Score are, the
+  four-stage calculation, what data feeds them, and the central finding
 - **Actors** -- state and international actors (Serbia, Kosovo, USA, EU,
   Russia, China, NATO, UN, Albania, India, OSCE, ICJ) and their role in the
   dispute
@@ -88,12 +93,19 @@ upfront about that:
   (ZOPA vs. implementation success, Power Index breakdown, Serbia's power
   transformation, political vs. economic cost, Window Score vs.
   implementation -- the central finding: conditions were ripe in 2013/2023,
-  but implementation stayed low)
+  but implementation stayed low), plus a Window Score Sensitivity Explorer
+  at the end -- adjustable weights, to see how much that central finding
+  actually depends on the specific 50/30/20 weighting
 - **Synthesis / Compare / per-event Q&A** -- LLM interpretation (Anthropic
   Claude) over existing data, answering in the same language the question was
-  asked in, with an explicit disclaimer on every answer
+  asked in, with an explicit disclaimer on every answer. Synthesis and
+  Compare need a free account; per-event Q&A stays open to everyone
 
 ## Methodology
+
+Also available as an accessible, in-app page (`/methodology`, "How it works"
+in the navbar) -- same content as this section, written for a reader who
+doesn't want to read a README.
 
 Every number on this platform that isn't raw seed data goes through the same
 four-stage, fully deterministic pipeline (no LLM involvement, all in
