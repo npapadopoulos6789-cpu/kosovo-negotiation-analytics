@@ -246,6 +246,46 @@ def test_create_comparison_happy_path(
     assert "event_b (id=" not in sent_message
 
 
+def test_create_comparison_retranslates_when_response_is_greek(
+    fake_analysis_repo, fake_event_repo, fake_context_dependencies, monkeypatch
+):
+    # Regression: το compare δεν έχει user_question, άρα καμία ελληνική
+    # ερώτηση να πυροδοτήσει το _GREEK_CHAR_RE -- το production bug ήταν
+    # ότι το μοντέλο απαντούσε ελληνικά έτσι κι αλλιώς (βλ.
+    # _translate_json_to_english). Εδώ προσομοιώνουμε ακριβώς αυτό: η
+    # ΠΡΩΤΗ κλήση επιστρέφει ελληνικό JSON, η δεύτερη (η μεταφραστική) το
+    # αγγλικό ισοδύναμο -- το αποθηκευμένο αποτέλεσμα πρέπει να είναι το
+    # δεύτερο, όχι το πρώτο.
+    fake_event_repo._events[2] = NegotiationEvent(id=2, title="Rambouillet Talks", date=date(1999, 2, 6))
+    fake_event_repo._events[7] = NegotiationEvent(id=7, title="Brussels Agreement", date=date(2013, 4, 19))
+
+    greek_raw_text = (
+        '{"zopa_difference": "Η ζώνη ήταν στενότερη", "power_comparison": "...", '
+        '"ripeness_difference": "...", "central_contrast": "...", '
+        '"answer_certainty": "HIGH", "data_gaps_noted": []}'
+    )
+    english_raw_text = (
+        '{"zopa_difference": "The zone was narrower", "power_comparison": "...", '
+        '"ripeness_difference": "...", "central_contrast": "...", '
+        '"answer_certainty": "HIGH", "data_gaps_noted": []}'
+    )
+    calls = []
+
+    def fake_call(system_prompt, user_message, max_tokens=8192):
+        calls.append({"system_prompt": system_prompt})
+        if len(calls) == 1:
+            return {"raw_text": greek_raw_text, "model": "fake-model"}
+        return {"raw_text": english_raw_text, "model": "fake-model"}
+
+    monkeypatch.setattr(analysis_service.llm_client, "call_llm", fake_call)
+
+    created = analysis_service.create_comparison(db=None, event_a_id=2, event_b_id=7)
+
+    assert len(calls) == 2
+    assert created.llm_answer == english_raw_text
+    assert "English" in calls[1]["system_prompt"]
+
+
 def test_create_comparison_rejects_identical_events(fake_analysis_repo, fake_event_repo, fake_llm_call):
     with pytest.raises(IdenticalComparisonEventsError):
         analysis_service.create_comparison(db=None, event_a_id=2, event_b_id=2)

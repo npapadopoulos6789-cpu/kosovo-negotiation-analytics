@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { RequireAdmin } from "./auth/RequireAdmin";
 
 // React.lazy -- κάθε route page γίνεται δικό της JS chunk (code-splitting),
 // ο browser κατεβάζει μόνο τον κώδικα της σελίδας που επισκέπτεται ο
@@ -34,6 +35,19 @@ const ComparePage = lazy(() => import("./pages/ComparePage").then((m) => ({ defa
 const LoginPage = lazy(() => import("./pages/LoginPage").then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import("./pages/RegisterPage").then((m) => ({ default: m.RegisterPage })));
 
+// Admin-only, ΣΚΟΠΙΜΑ δικά τους chunks -- σπάνια επισκέψιμα, δεν αξίζει
+// να βαραίνουν το bundle κανενός VIEWER/ανώνυμου επισκέπτη.
+const AdminPage = lazy(() => import("./pages/admin/AdminPage").then((m) => ({ default: m.AdminPage })));
+const AdminCountriesPage = lazy(() =>
+  import("./pages/admin/AdminCountriesPage").then((m) => ({ default: m.AdminCountriesPage })),
+);
+const AdminIndicatorsPage = lazy(() =>
+  import("./pages/admin/AdminIndicatorsPage").then((m) => ({ default: m.AdminIndicatorsPage })),
+);
+const AdminEventsPage = lazy(() =>
+  import("./pages/admin/AdminEventsPage").then((m) => ({ default: m.AdminEventsPage })),
+);
+
 function App() {
   return (
     <Routes>
@@ -51,6 +65,15 @@ function App() {
             Ίδιο Layout (navbar) με όλα τα άλλα, κανένα guard γύρω τους. */}
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        {/* /admin/* -- layout route, το RequireAdmin ελέγχει role=ADMIN
+            μία φορά και ρεντάρει <Outlet/> για όλα τα children. Και τα 4
+            entities (Countries/Events/Indicators + hub) καλυμμένα. */}
+        <Route path="admin" element={<RequireAdmin />}>
+          <Route index element={<AdminPage />} />
+          <Route path="countries" element={<AdminCountriesPage />} />
+          <Route path="events" element={<AdminEventsPage />} />
+          <Route path="indicators" element={<AdminIndicatorsPage />} />
+        </Route>
       </Route>
     </Routes>
   );

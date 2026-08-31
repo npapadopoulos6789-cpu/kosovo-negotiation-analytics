@@ -8,7 +8,8 @@ from app.schemas.negotiation_event import (
 )
 from app.services import negotiation_event as event_service
 from app.services.negotiation_event import (
-    NegotiationEventNotFoundError, InvalidWeightsError, CountryForParticipantNotFoundError
+    NegotiationEventNotFoundError, InvalidWeightsError, CountryForParticipantNotFoundError,
+    EventHasAnalysesError
 )
 
 
@@ -67,6 +68,23 @@ def fake_country_repo(monkeypatch):
     return repo
 
 
+class FakeAnalysisRepository:
+    def __init__(self):
+        # event_id -> πόσα analyses "υπάρχουν" γι' αυτό -- ο ίδιος fake
+        # μπορεί να ρυθμιστεί από κάθε test (βλ. test_delete_event_rejects...)
+        self._by_event: dict[int, list[object]] = {}
+
+    def get_by_event(self, db, event_id):
+        return self._by_event.get(event_id, [])
+
+
+@pytest.fixture()
+def fake_analysis_repo(monkeypatch):
+    repo = FakeAnalysisRepository()
+    monkeypatch.setattr(event_service, "analysis_repository", repo)
+    return repo
+
+
 def make_event_data(**overrides):
     defaults = dict(
         title="Rambouillet Talks",
@@ -119,7 +137,6 @@ def test_get_event_raises_when_missing(fake_event_repo, fake_country_repo):
 
 
 def test_update_event_rejects_broken_weights_from_partial_update(fake_event_repo, fake_country_repo):
-    # Δημιουργούμε ένα event με σωστά βάρη 4/4/2
     created = event_service.create_event(db=None, data=make_event_data())
 
     # Στέλνουμε update ΜΟΝΟ για economic_weight -- αυτό ΘΑ ΕΠΡΕΠΕ να σπάσει
@@ -144,9 +161,25 @@ def test_update_event_allows_valid_partial_update(fake_event_repo, fake_country_
     assert updated.economic_weight == 4
 
 
-def test_delete_event_removes_entry(fake_event_repo, fake_country_repo):
+def test_delete_event_removes_entry(fake_event_repo, fake_country_repo, fake_analysis_repo):
     created = event_service.create_event(db=None, data=make_event_data())
 
     event_service.delete_event(db=None, event_id=created.id)
 
     assert fake_event_repo.get_by_id(None, created.id) is None
+
+
+def test_delete_event_rejects_when_analyses_exist(fake_event_repo, fake_country_repo, fake_analysis_repo):
+    # Χωρίς αυτόν τον έλεγχο, το delete θα προσπαθούσε να σβήσει το event
+    # και θα έσκαγε σε ακατέργαστο Postgres IntegrityError (FK χωρίς
+    # ondelete) -- βλ. σχόλιο στο EventHasAnalysesError. Το service ΠΡΕΠΕΙ
+    # να το πιάσει ΠΡΙΝ φτάσει καν στο repository.delete.
+    created = event_service.create_event(db=None, data=make_event_data())
+    fake_analysis_repo._by_event[created.id] = ["fake analysis 1", "fake analysis 2"]
+
+    with pytest.raises(EventHasAnalysesError):
+        event_service.delete_event(db=None, event_id=created.id)
+
+    # Το event ΔΕΝ διαγράφηκε -- το block είναι πραγματικό, όχι απλά raise
+    # μετά το γεγονός
+    assert fake_event_repo.get_by_id(None, created.id) is not None

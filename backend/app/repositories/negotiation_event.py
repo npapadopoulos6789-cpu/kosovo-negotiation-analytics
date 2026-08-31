@@ -47,12 +47,10 @@ def delete(db: Session, event: NegotiationEvent) -> None:
 def replace_participants(
     db: Session, event: NegotiationEvent, participants_data: list[dict]
 ) -> None:
-    # Σβήνουμε όλους τους υπάρχοντες participants του event...
     for p in list(event.participants):
         db.delete(p)
-    db.flush()  # "στέλνει" τις διαγραφές στη ΒΔ χωρίς ακόμα commit
+    db.flush()  # στέλνει τις διαγραφές στη ΒΔ χωρίς ακόμα commit
 
-    # ...και δημιουργούμε νέους, βάσει της λίστας που δόθηκε
     for p_data in participants_data:
         participant = EventParticipant(event_id=event.id, **p_data)
         db.add(participant)

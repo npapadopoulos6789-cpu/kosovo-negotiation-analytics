@@ -271,6 +271,34 @@ def _translate_json_to_greek(raw_json_text: str) -> str:
     return result["raw_text"]
 
 
+def _translate_json_to_english(raw_json_text: str) -> str:
+    """
+    Καθρέφτης του _translate_json_to_greek, για το compare flow. Το
+    compare δεν έχει user_question -- άρα καμία ερώτηση να ανιχνεύσει τη
+    γλώσσα της, μόνο η soft οδηγία "αν δεν υπάρχει ερώτηση, απάντησε
+    αγγλικά" (SHARED_PREAMBLE) ενάντια σε ένα system prompt που είναι ~90%
+    ελληνικό κείμενο οδηγιών. Επιβεβαιωμένο 2026-08-31: αυτή η soft οδηγία
+    δεν αρκεί -- το compare απαντούσε ελληνικά. Ίδια λύση με το ελληνικό
+    flow: αν το raw αποτέλεσμα περιέχει ελληνικούς χαρακτήρες, ένα
+    ξεχωριστό, καθαρό call το ξαναγράφει στα αγγλικά, χωρίς το τεράστιο
+    context να ανταγωνίζεται την οδηγία.
+    """
+    system = (
+        "You are a technical/analytical translator, Greek to English. "
+        "You are given a JSON object. Return the EXACT SAME JSON schema, "
+        "with ONLY the free-text field values translated to English (e.g. "
+        "zopa_difference, power_comparison, ripeness_difference, "
+        "central_contrast, and strings inside lists such as "
+        "data_gaps_noted). DO NOT change: field names, JSON structure, or "
+        "the values of any enum/boolean/numeric field (e.g. "
+        "answer_certainty, agrees, event_id, year, window_score -- these "
+        "stay EXACTLY the same, untranslated). Respond ONLY with the "
+        "translated JSON, no other prose."
+    )
+    result = llm_client.call_llm(system, raw_json_text)
+    return result["raw_text"]
+
+
 def _build_compare_message(context: dict) -> str:
     # Δεν υπάρχει free-text ερώτηση χρήστη στο compare -- μόνο τα δύο events.
     # ΠΡΑΓΜΑΤΙΚΟΙ τίτλοι εδώ (ΟΧΙ "event_a"/"event_b") -- αυτή είναι η ΠΡΩΤΗ
@@ -351,6 +379,14 @@ def create_comparison(db: Session, event_a_id: int, event_b_id: int) -> Negotiat
 
     # Ίδια εγγύηση με το create_analysis: LLMCallError -> καμία αποθήκευση.
     result = llm_client.call_llm(SYSTEM_PROMPT_COMPARE, user_message)
+    raw_text = result["raw_text"]
+
+    # Το compare δεν έχει user_question -- καμία ελληνική ερώτηση να
+    # ανιχνεύσει το _GREEK_CHAR_RE. Ελέγχουμε το ΑΠΟΤΕΛΕΣΜΑ αντί για την
+    # (ανύπαρκτη) ερώτηση: αν το μοντέλο απάντησε ελληνικά παρόλο που δεν
+    # έπρεπε (βλ. _translate_json_to_english docstring), το ξαναγράφουμε.
+    if _GREEK_CHAR_RE.search(raw_text):
+        raw_text = _translate_json_to_english(raw_text)
 
     # negotiation_event_id=event_a_id (όχι NULL+is_synthesis=True): το
     # is_synthesis σημαίνει "πάνω σε ΟΛΑ τα events", όχι "πάνω σε 2 events",
@@ -362,7 +398,7 @@ def create_comparison(db: Session, event_a_id: int, event_b_id: int) -> Negotiat
         negotiation_event_id=event_a_id,
         is_synthesis=False,
         user_question=f"[COMPARE] Event {event_a_id} vs Event {event_b_id}",
-        llm_answer=result["raw_text"],
+        llm_answer=raw_text,
         model_used=result["model"],
     )
     return analysis_repository.create(db, analysis)

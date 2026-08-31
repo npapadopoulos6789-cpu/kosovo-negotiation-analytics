@@ -77,6 +77,13 @@ upfront about that:
   UNMIK administration, 1999-2007) tailored to this case study -- a different
   case would need its own context written in.
 
+I've mapped out a more detailed roadmap for extending this further in my own
+working notes -- specific next steps like a proper BATNA index and a
+bargaining-power layer on top of the current Power Index, better
+outcome/implementation scoring, and the longer-term vision of letting other
+researchers plug in their own conflict data instead of just Serbia and
+Kosovo.
+
 ## What it does
 
 - **Landing page** -- explains the research question, the thesis's central
@@ -89,13 +96,14 @@ upfront about that:
   dispute
 - **Events** -- 10 milestones of the negotiations (1989-2023), with ZOPA,
   ripeness, BATNA, red lines, economic/military/social weights per event
-- **Dashboard** -- 5 interactive charts built on the deterministic scores
-  (ZOPA vs. implementation success, Power Index breakdown, Serbia's power
-  transformation, political vs. economic cost, Window Score vs.
-  implementation -- the central finding: conditions were ripe in 2013/2023,
-  but implementation stayed low), plus a Window Score Sensitivity Explorer
-  at the end -- adjustable weights, to see how much that central finding
-  actually depends on the specific 50/30/20 weighting
+- **Dashboard** -- 5 interactive charts built on the deterministic scores:
+  ZOPA vs. implementation success, Power Index breakdown, Serbia's power
+  transformation, political vs. economic cost, and Window Score vs.
+  implementation, which is the central finding -- conditions were ripe in
+  2013/2023, but implementation stayed low anyway. There's also a Window
+  Score Sensitivity Explorer at the end where you can drag the weights
+  around yourself and see how much that finding actually depends on the
+  specific 50/30/20 split I picked
 - **Synthesis / Compare / per-event Q&A** -- LLM interpretation (Anthropic
   Claude) over existing data, answering in the same language the question was
   asked in, with an explicit disclaimer on every answer. Synthesis and
@@ -138,9 +146,11 @@ four-stage, fully deterministic pipeline (no LLM involvement, all in
 (ZOPA, ripeness, BATNA, red lines) come from my thesis, entered as seed data.
 The quantitative indicators are a mix -- some read directly from thesis
 charts, others pulled from the World Bank API (GDP, unemployment, military
-expenditure, FDI) and Freedom House. Full source-by-source breakdown,
-confidence levels, and every indicator I researched and rejected:
-[SEED_SOURCE.md](SEED_SOURCE.md).
+expenditure, FDI) and Freedom House. I kept a running log of exactly where
+every number came from, its confidence level, and the indicators I looked
+at and didn't use in `SEED_SOURCE.md` -- it's not published in this repo,
+but it's the real research trail behind every figure on this platform, not
+just this README's word for it.
 
 **The weight percentages (40/40/20, 50/30/20) are my own design, not an
 empirical or cited result.** I looked at the Composite Index of National
@@ -155,8 +165,8 @@ like Kosovo, and CINC's world-share normalization would flatten both
 countries into a near-constant low score regardless of their real relative
 dynamic -- the same distortion I found and fixed with linear GDP scaling.
 My weights reflect my own judgment about what matters most in this
-negotiation context, not a citable methodology. Full comparison:
-[SEED_SOURCE.md §9](SEED_SOURCE.md).
+negotiation context, not a citable methodology -- the full comparison with
+CINC, sources included, is in `SEED_SOURCE.md`.
 
 ## Limitations
 
@@ -183,18 +193,17 @@ hide them behind smooth-looking charts.
   methodology (multiple independent sources call it unreliable), SIPRI
   arms-transfer data is real but too sparse for Kosovo to be useful, and the
   Correlates of War capability dataset has no personnel data for Kosovo at
-  all. Full research trail, including cross-checks against the CIA World
-  Factbook: [SEED_SOURCE.md](SEED_SOURCE.md).
+  all. `SEED_SOURCE.md` has the whole research trail, including a
+  cross-check against the CIA World Factbook.
 - **The weight percentages are my own design, not a citation** -- see
   Methodology above for the full explanation and the comparison with CINC.
 - **Social stability, not instability, contributes positively to the Window
   Score.** An earlier version of this got the direction backwards, crediting
   *instability* as "pressure toward compromise." Per the thesis (Putnam's
-  Two-Level Game, cited in [SEED_SOURCE.md §7](SEED_SOURCE.md)), domestic
-  political instability narrows a leader's negotiating "win set" and raises
-  the political cost of concessions, making agreement harder, not easier.
-  Full rationale and a concrete example from the seed data:
-  [SEED_SOURCE.md §10](SEED_SOURCE.md).
+  Two-Level Game), domestic political instability narrows a leader's
+  negotiating "win set" and raises the political cost of concessions, making
+  agreement harder, not easier -- full rationale and a worked example from
+  the seed data in `SEED_SOURCE.md`.
 
 ## Tech stack
 
@@ -280,12 +289,10 @@ module → hook/component → page (frontend).
 
 ## Documentation
 
-Everything above is enough to understand the platform. These are supporting
-documents, each written for a different purpose:
-
-- [SEED_SOURCE.md](SEED_SOURCE.md) -- the full data-source breakdown, one
-  entry per indicator and event: where every number comes from, its
-  confidence level, and the complete research trail for indicators I
-  considered and rejected (IISS, SIPRI arms transfers, CINC, Correlates of
-  War, CIA World Factbook, and others). Read this to verify a specific
-  figure.
+`SEED_SOURCE.md`, referenced throughout this README, is where I keep the
+full data-source breakdown -- one entry per indicator and event, where every
+number comes from, its confidence level, and the complete research trail
+for indicators I considered and rejected (IISS, SIPRI arms transfers, CINC,
+Correlates of War, CIA World Factbook, and others). I keep it as private
+research notes rather than publishing it in this repo, but it's real and
+it's what every sourcing claim in this README actually rests on.

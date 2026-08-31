@@ -17,7 +17,8 @@ from app.api.compare import router as compare_router
 from app.services.country import CountryNotFoundError, DuplicateCountryNameError
 from app.services.indicator import IndicatorNotFoundError, CountryForIndicatorNotFoundError
 from app.services.negotiation_event import (
-    NegotiationEventNotFoundError, InvalidWeightsError, CountryForParticipantNotFoundError
+    NegotiationEventNotFoundError, InvalidWeightsError, CountryForParticipantNotFoundError,
+    EventHasAnalysesError
 )
 from app.services.user import EmailAlreadyRegisteredError, InvalidCredentialsError
 from app.services.negotiation_analysis import (
@@ -100,6 +101,11 @@ def handle_invalid_weights(request: Request, exc: InvalidWeightsError) -> JSONRe
 @app.exception_handler(CountryForParticipantNotFoundError)
 def handle_country_for_participant_not_found(request: Request, exc: CountryForParticipantNotFoundError) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+
+@app.exception_handler(EventHasAnalysesError)
+def handle_event_has_analyses(request: Request, exc: EventHasAnalysesError) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
 @app.exception_handler(EmailAlreadyRegisteredError)

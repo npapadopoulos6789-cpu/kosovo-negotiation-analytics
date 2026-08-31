@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.models.negotiation_event import NegotiationEvent
 from app.repositories import negotiation_event as event_repository
 from app.repositories import country as country_repository
+from app.repositories import negotiation_analysis as analysis_repository
 from app.schemas.negotiation_event import NegotiationEventCreate, NegotiationEventUpdate
 
 
@@ -26,6 +27,21 @@ class CountryForParticipantNotFoundError(Exception):
     def __init__(self, country_id: int):
         self.country_id = country_id
         super().__init__(f"Country {country_id} not found for participant")
+
+
+class EventHasAnalysesError(Exception):
+    # Το FK NegotiationAnalysis.negotiation_event_id δεν έχει ondelete
+    # clause -- χωρίς αυτόν τον έλεγχο, ένα DELETE πάνω σε event με
+    # analyses θα έσκαγε με ακατέργαστο Postgres IntegrityError αντί για
+    # καθαρό 409. Block αντί για cascade/SET NULL: τα LLM Q&A analyses
+    # είναι ερευνητικό output, δεν σβήνονται σιωπηλά.
+    def __init__(self, event_id: int, analysis_count: int):
+        self.event_id = event_id
+        self.analysis_count = analysis_count
+        super().__init__(
+            f"Cannot delete event {event_id}: {analysis_count} analysis/analyses "
+            f"still reference it. Delete those analyses first."
+        )
 
 
 def _validate_weights(economic: int, military: int, social: int) -> None:
@@ -100,4 +116,7 @@ def update_event(db: Session, event_id: int, data: NegotiationEventUpdate) -> Ne
 
 def delete_event(db: Session, event_id: int) -> None:
     event = get_event(db, event_id)
+    existing_analyses = analysis_repository.get_by_event(db, event_id)
+    if existing_analyses:
+        raise EventHasAnalysesError(event_id, len(existing_analyses))
     event_repository.delete(db, event)

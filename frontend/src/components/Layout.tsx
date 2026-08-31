@@ -10,7 +10,7 @@ import "./layout.css";
 //
 // "/" είναι πλέον η νέα LandingPage, ΟΧΙ το Dashboard (βλ. App.tsx) --
 // το Dashboard μετακόμισε σε "/dashboard", ενημερώθηκε εδώ αντίστοιχα.
-const NAV_LINKS = [
+const BASE_NAV_LINKS = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/methodology", label: "How it works" },
   { to: "/actors", label: "Actors" },
@@ -18,6 +18,13 @@ const NAV_LINKS = [
   { to: "/synthesis", label: "Synthesis" },
   { to: "/compare", label: "Compare" },
 ];
+
+// "Admin" link προστίθεται ΜΟΝΟ για ADMIN χρήστες (βλ. Layout(), παρακάτω)
+// -- δεν εμφανίζεται καν στο navbar για VIEWER/ανώνυμους, ξεχωριστό από
+// το RequireAdmin route guard (App.tsx), που είναι η πραγματική ασφάλεια.
+// Το ένα κρύβει το link, το άλλο μπλοκάρει το route -- και τα δύο
+// χρειάζονται, κανένα δεν υποκαθιστά το άλλο.
+const ADMIN_NAV_LINK = { to: "/admin", label: "Admin" };
 
 export function Layout() {
   const { user, logout } = useAuth();
@@ -42,6 +49,8 @@ export function Layout() {
     navigate("/");
   }
 
+  const navLinks = user?.role === "ADMIN" ? [...BASE_NAV_LINKS, ADMIN_NAV_LINK] : BASE_NAV_LINKS;
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -63,7 +72,7 @@ export function Layout() {
           }
         >
           <nav className="app-nav">
-            {NAV_LINKS.map(({ to, label }) => (
+            {navLinks.map(({ to, label }) => (
               <NavLink
                 key={to}
                 to={to}

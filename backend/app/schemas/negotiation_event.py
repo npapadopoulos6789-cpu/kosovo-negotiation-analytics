@@ -1,4 +1,11 @@
-from datetime import date
+# "as date_type", ΟΧΙ "from datetime import date" -- αν το πεδίο ΚΑΙ ο τύπος
+# του λέγονται και τα δύο "date" (π.χ. "date: Optional[date] = None"), η
+# Python αξιολογεί ΠΡΩΤΑ το "= None" (το δένει στο class namespace ως
+# date=None) και ΜΕΤΑ το annotation "Optional[date]" -- που πλέον βλέπει
+# το ΔΙΚΟ ΤΟΥ date=None αντί για το datetime.date! Αποτέλεσμα:
+# NegotiationEventUpdate.date γινόταν στην πράξη Optional[NoneType], και
+# κάθε PUT με date πεδίο έσκαγε με 422 "Input should be None".
+from datetime import date as date_type
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -32,7 +39,7 @@ class ParticipantRead(BaseModel):
 
 class NegotiationEventBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
-    date: date
+    date: date_type
     description: Optional[str] = None
 
     zopa_size: Optional[ZopaSize] = None
@@ -60,7 +67,7 @@ class NegotiationEventCreate(NegotiationEventBase):
 
 class NegotiationEventUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
-    date: Optional[date] = None
+    date: Optional[date_type] = None
     description: Optional[str] = None
     zopa_size: Optional[ZopaSize] = None
     zopa_reasoning: Optional[str] = None
@@ -75,8 +82,8 @@ class NegotiationEventUpdate(BaseModel):
     military_weight: Optional[int] = None
     social_weight: Optional[int] = None
     implementation_success: Optional[float] = None
-    # Αν σταλεί, ΑΝΤΙΚΑΘΙΣΤΑ όλη τη λίστα participants (απλούστερο από
-    # partial add/remove -- το documentάρουμε ρητά στο README αργότερα)
+    # Αν σταλεί, αντικαθιστά όλη τη λίστα participants (απλούστερο από
+    # partial add/remove).
     participants: Optional[list[ParticipantCreate]] = None
 
 

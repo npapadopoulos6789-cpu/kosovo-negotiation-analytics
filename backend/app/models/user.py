@@ -14,7 +14,6 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # unique=True: δεν επιτρέπονται δύο χρήστες με το ίδιο email
     email = Column(String(200), unique=True, nullable=False, index=True)
 
     # ΠΟΤΕ δεν αποθηκεύουμε τον πραγματικό κωδικό -- μόνο το hash του

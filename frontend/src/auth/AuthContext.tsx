@@ -35,12 +35,12 @@ function readInitialUser(): AuthUser | null {
   return { email: payload.sub, role: payload.role };
 }
 
-// Καμία σελίδα σήμερα δεν ΑΠΑΙΤΕΙ authentication -- Actors/Events/
-// Dashboard/Synthesis/Compare παραμένουν πλήρως προσβάσιμα χωρίς login,
-// γιατί κανένα από τα αντίστοιχα backend endpoints δεν το απαιτεί (βλ.
-// core/dependencies.py: μόνο το verify indicators PUT περνάει από
-// require_admin, και δεν έχει UI ακόμα). Το context εδώ κρατάει state
-// για μελλοντική χρήση -- δεν φράζει τίποτα υπάρχον.
+// Actors/Events/Dashboard/Synthesis/Compare παραμένουν πλήρως προσβάσιμα
+// χωρίς login -- κανένα από τα αντίστοιχα backend endpoints δεν το
+// απαιτεί (βλ. core/dependencies.py). Το ΜΟΝΟ protected route σήμερα
+// είναι "/admin/*" (βλ. RequireAdmin.tsx/App.tsx) -- διαχείριση δεδομένων
+// για ADMIN χρήστες, ίδια require_admin εξάρτηση με το backend PUT
+// /indicators/{id} verify workflow.
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(readInitialUser);
 
